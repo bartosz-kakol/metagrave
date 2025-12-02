@@ -1,0 +1,39 @@
+{
+  "name": "metagrave",
+  "version": "1.0.0",
+  "author": {
+    "name": "bartekk",
+    "email": "bartekk.github@pm.me"
+  },
+  "homepage": "https://github.com/bartosz-kakol/metagrave",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "dist-auto": "electron-builder",
+    "dist-auto-x64": "electron-builder --x64",
+    "dist": "electron-builder -mwl",
+    "dist-x64": "electron-builder -mwl --x64",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": true,
+  "devDependencies": {
+    "electron": "^39.2.4",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "pl.bartekk.metagrave",
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": [
+        "deb",
+        "AppImage"
+      ]
+    }
+  }
+}

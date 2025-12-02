@@ -1,0 +1,4 @@
+html > body > div:first-of-type > div > div > div > div > div:nth-of-type(2) > div > div > div:first-of-type > div:first-of-type > div > div:first-of-type {
+    padding-top: 20px !important;
+    padding-right: 10px !important;
+}

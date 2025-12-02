@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:;">
+    <style>
+        body {
+            margin: 0;
+        }
+
+        .titlebar {
+            height: 32px;
+            background: #1A1A1A;
+            color: #ddd;
+            -webkit-user-select: none;
+            -webkit-app-region: drag;
+            display: flex;
+            align-items: center;
+            padding: 0 0 0 8px;
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        .btn {
+            width: 46px;
+            height: 100%;
+            -webkit-app-region: no-drag;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+        }
+
+        .btn:hover {
+            background: #3a3a3a;
+        }
+
+        .btn.close:hover {
+            background: #e81123;
+            color: white;
+        }
+
+        .btn > svg > path {
+            fill: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="titlebar" id="bar">
+        <span>Metagrave</span>
+        <div style="flex: 1"></div>
+        <div class="btn" id="min">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 48 48" fill="none">
+                <path d="M6 23.25C6 22.5596 6.55964 22 7.25 22H40.75C41.4404 22 42 22.5596 42 23.25C42 23.9404 41.4404 24.5 40.75 24.5H7.25C6.55964 24.5 6 23.9404 6 23.25Z" />
+                <style xmlns="" type="text/css"/></svg>
+        </div>
+        <div class="btn" id="max">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 48 48" fill="none">
+                <path d="M6 12.25C6 8.79822 8.79822 6 12.25 6H35.75C39.2018 6 42 8.79822 42 12.25V35.75C42 39.2018 39.2018 42 35.75 42H12.25C8.79822 42 6 39.2018 6 35.75V12.25ZM12.25 8.5C10.1789 8.5 8.5 10.1789 8.5 12.25V35.75C8.5 37.8211 10.1789 39.5 12.25 39.5H35.75C37.8211 39.5 39.5 37.8211 39.5 35.75V12.25C39.5 10.1789 37.8211 8.5 35.75 8.5H12.25Z" />
+                <style xmlns="" type="text/css"/></svg>
+        </div>
+        <div class="btn close" id="close">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 48 48" fill="none">
+                <path d="M8.38388 6.61612C7.89573 6.12796 7.10427 6.12796 6.61612 6.61612C6.12796 7.10427 6.12796 7.89573 6.61612 8.38388L22.2322 24L6.6164 39.6158C6.12824 40.104 6.12824 40.8954 6.6164 41.3836C7.10455 41.8718 7.89601 41.8718 8.38416 41.3836L24 25.7678L39.6153 41.3831C40.1035 41.8713 40.895 41.8713 41.3831 41.3831C41.8713 40.895 41.8713 40.1035 41.3831 39.6153L25.7678 24L41.3834 8.38437C41.8716 7.89622 41.8716 7.10476 41.3834 6.6166C40.8952 6.12845 40.1038 6.12845 39.6156 6.6166L24 22.2322L8.38388 6.61612Z" />
+                <style xmlns="" type="text/css"/></svg>
+        </div>
+    </div>
+    <script>
+        const { ipcRenderer } = require("electron");
+
+        document.getElementById("min").addEventListener("click", () => ipcRenderer.send("window-control", "minimize"));
+        document.getElementById("max").addEventListener("click", () => ipcRenderer.send("window-control", "maximize"));
+        document.getElementById("close").addEventListener("click", () => ipcRenderer.send('window-control', "close"));
+    </script>
+</body>
+</html>
