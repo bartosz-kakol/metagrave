@@ -12,7 +12,7 @@ let chatWindow;
 
 function createSplashWindow() {
     splashWindow = new BrowserWindow({
-        width: 300,
+        width: 400,
         height: 150,
         frame: false,
         transparent: true,
@@ -316,8 +316,10 @@ function createChatWindow(continueFromURL) {
     }
 
 	chatWindow.on("close", event => {
-        event.preventDefault();
-        chatWindow.hide();
+		if (p.isMac) {
+			event.preventDefault();
+			chatWindow.hide();
+		}
     });
 
 	chatWindow.on("closed", () => {
@@ -341,7 +343,7 @@ app.on("before-quit", () => {
 });
 
 app.on("window-all-closed", () => {
-	if (process.platform !== "darwin") {
+	if (!p.isMac) {
 		app.quit();
 	}
 });

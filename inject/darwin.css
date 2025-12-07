@@ -1,6 +1,33 @@
+/* The left sidebar vertical menu */
 html > body > div:first-of-type > div > div > div > div > div:nth-of-type(2) > div > div > div:first-of-type > div:first-of-type > div > div:first-of-type {
     padding-top: 20px !important;
     padding-right: 8px !important;
 }
 
+/* The contacts menu and conversation name header */
+html > body > div:first-of-type > div > div > div > div > div:nth-of-type(2) > div > div > div:first-of-type > div:first-of-type > div > div:nth-of-type(2) > div > div:first-of-type,
+html > body > div:first-of-type > div > div > div > div > div:nth-of-type(2) > div > div > div:first-of-type > div:first-of-type > div > div:nth-of-type(3) > div > div > div:first-of-type > div > div > div > div:first-of-type > div > div:first-of-type > div:first-of-type {
+    -webkit-app-region: drag;
+}
 
+/* The contacts menu and conversation name header buttons */
+html > body > div:first-of-type > div > div > div > div > div:nth-of-type(2) > div > div > div:first-of-type > div:first-of-type > div > div:nth-of-type(2) > div > div:first-of-type a,
+html > body > div:first-of-type > div > div > div > div > div:nth-of-type(2) > div > div > div:first-of-type > div:first-of-type > div > div:nth-of-type(3) > div > div > div:first-of-type > div > div > div > div:first-of-type > div > div:first-of-type > div:first-of-type div[role="button"] {
+    -webkit-app-region: no-drag;
+}
+
+/* The Facebook button in the top left */
+html > body > div:first-of-type > div > div > div > div > div:nth-of-type(2) > div > div > div:first-of-type > div:first-of-type > div > div:nth-of-type(2) > div > div:first-of-type > div > div:nth-of-type(2) > div > span:first-of-type {
+    display: none !important;
+}
+
+html > body::after {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 32px;
+    content: "";
+    z-index: 99999;
+    -webkit-app-region: drag;
+}

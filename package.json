@@ -11,9 +11,7 @@
   "scripts": {
     "start": "electron .",
     "dist-auto": "electron-builder",
-    "dist-auto-x64": "electron-builder --x64",
-    "dist": "electron-builder -mwl",
-    "dist-x64": "electron-builder -mwl --x64",
+    "dist": "electron-builder -mwl --x64 --arm64",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "private": true,
@@ -23,17 +21,42 @@
   },
   "build": {
     "appId": "pl.bartekk.metagrave",
+    "dmg": {
+      "title": "${productName} ${version} Installer",
+      "background": "build/dmg/background.tiff",
+      "iconSize": 128,
+      "window": {
+        "x": 100,
+        "y": 100,
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 180,
+          "y": 170,
+          "type": "file",
+          "path": ""
+        },
+        {
+          "x": 360,
+          "y": 170,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
     },
     "mac": {
-      "target": "dmg"
+      "target": ["dir", "dmg"],
+      "icon": "build/icon.icns"
     },
     "linux": {
-      "target": [
-        "deb",
-        "AppImage"
-      ]
+      "target": ["deb", "AppImage"],
+      "icon": "build/icon.png"
     }
   }
 }
