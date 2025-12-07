@@ -2,51 +2,11 @@
 <html>
 <head>
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:;">
-    <style>
-        body {
-            margin: 0;
-        }
-
-        .titlebar {
-            height: 32px;
-            background: #1A1A1A;
-            color: #ddd;
-            -webkit-user-select: none;
-            -webkit-app-region: drag;
-            display: flex;
-            align-items: center;
-            padding: 0 0 0 8px;
-            box-sizing: border-box;
-            font-family: sans-serif;
-        }
-
-        .btn {
-            width: 46px;
-            height: 100%;
-            -webkit-app-region: no-drag;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: default;
-        }
-
-        .btn:hover {
-            background: #3a3a3a;
-        }
-
-        .btn.close:hover {
-            background: #e81123;
-            color: white;
-        }
-
-        .btn > svg > path {
-            fill: white;
-        }
-    </style>
+    <link rel="stylesheet" href="css/windows_titlebar.css">
 </head>
 <body>
     <div class="titlebar" id="bar">
-        <span>Metagrave</span>
+        <span style="font-size: 14px;">Metagrave</span>
         <div style="flex: 1"></div>
         <div class="btn" id="min">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 48 48" fill="none">
@@ -64,12 +24,7 @@
                 <style xmlns="" type="text/css"/></svg>
         </div>
     </div>
-    <script>
-        const { ipcRenderer } = require("electron");
 
-        document.getElementById("min").addEventListener("click", () => ipcRenderer.send("window-control", "minimize"));
-        document.getElementById("max").addEventListener("click", () => ipcRenderer.send("window-control", "maximize"));
-        document.getElementById("close").addEventListener("click", () => ipcRenderer.send('window-control', "close"));
-    </script>
+    <script src="js/windows_titlebar.js"></script>
 </body>
 </html>

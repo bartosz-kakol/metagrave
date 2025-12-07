@@ -1,57 +1,179 @@
-const {app, BrowserWindow, Menu, ipcMain, WebContentsView} = require("electron");
+const {app, BrowserWindow, Menu, ipcMain, WebContentsView, session} = require("electron");
 const fs = require("fs");
 const path = require("path");
+const p = require("./platform_detect");
 
+/** @type {ElectronBrowserWindow} */
+let splashWindow;
 /** @type {ElectronBrowserWindow} */
 let loginWindow;
 /** @type {ElectronBrowserWindow} */
 let chatWindow;
 
-function createLoginWindow() {
-	loginWindow = new BrowserWindow({
-		width: 800,
-		height: 600,
-		webPreferences: {
-			nodeIntegration: false
-		}
+function createSplashWindow() {
+    splashWindow = new BrowserWindow({
+        width: 300,
+        height: 150,
+        frame: false,
+        transparent: true,
+        resizable: false,
+        movable: false,
+        alwaysOnTop: true,
+        center: true,
+        show: false,
+        skipTaskbar: true,
+        backgroundColor: !p.isOther ? "#00000000" : "#1A1A1A",
+        vibrancy: p.isMac ? "under-window" : undefined,
+        visualEffectState: p.isMac ? "active" : undefined,
+        webPreferences: {
+            nodeIntegration: false,
+            sandbox: true
+        }
+    });
+
+    splashWindow.setMenuBarVisibility(false);
+
+    if (p.isWin && typeof splashWindow.setBackgroundMaterial === "function") {
+        try {
+            splashWindow.setBackgroundMaterial("acrylic");
+        } catch (_) {
+            // ignore if not supported
+        }
+    }
+
+    splashWindow.once("ready-to-show", () => {
+        splashWindow.show();
+    });
+
+    splashWindow.on("closed", () => {
+        splashWindow = null;
+    });
+
+    splashWindow.loadFile("embed/splash.html");
+
+	if (!app.isQuitting) {
+		createLoginWindow(
+			() => {
+				if (splashWindow && !splashWindow.isDestroyed()) {
+					splashWindow.close();
+				}
+			}
+		);
+	}
+}
+
+function createLoginWindow(onLoaded) {
+    const addressBarHeight = 28;
+
+    loginWindow = new BrowserWindow({
+        width: 800,
+        minWidth: 800,
+        height: 600,
+        minHeight: 600,
+        webPreferences: {
+            nodeIntegration: false
+        },
+        show: false
+    });
+
+    const menu = Menu.buildFromTemplate([
+        {
+            label: "File",
+            submenu: [
+                {role: "quit"}
+            ]
+        }
+    ]);
+    Menu.setApplicationMenu(menu);
+
+    const addressBarView = new WebContentsView({
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+    loginWindow.contentView.addChildView(addressBarView);
+
+    const contentView = new WebContentsView({
+        webPreferences: {
+            nodeIntegration: false,
+            sandbox: true
+        }
+    });
+    loginWindow.contentView.addChildView(contentView);
+
+    const applyLayout = () => {
+        const [w, h] = loginWindow.getContentSize();
+        addressBarView.setBounds({x: 0, y: 0, width: w, height: addressBarHeight});
+        contentView.setBounds({x: 0, y: addressBarHeight, width: w, height: Math.max(0, h - addressBarHeight)});
+    };
+    applyLayout();
+    loginWindow.on("resize", applyLayout);
+
+    addressBarView.webContents.loadFile("embed/address_bar.html");
+
+    loginWindow.on("closed", () => {
+        if (app.dontQuitOnCloseLoginWindow) return;
+
+        app.isQuitting = true;
+        app.quit();
+    });
+
+    const initialURL = "https://www.messenger.com";
+    contentView.webContents.loadURL(initialURL);
+
+    const updateAddressBar = (url, loading) => {
+        try {
+            addressBarView.webContents.send("address:update", {url, loading});
+        } catch (_) {}
+    };
+
+    let currentURL = initialURL;
+
+    contentView.webContents.on("did-start-loading", () => {
+		console.log("did-start-loading: ", currentURL);
+		updateAddressBar(currentURL, true)
 	});
 
-	const menu = Menu.buildFromTemplate([
-		{
-			label: "File",
-			submenu: [
-				{role: "quit"}
-			]
-		}
-	]);
-	Menu.setApplicationMenu(menu);
-
-	loginWindow.loadURL("https://www.messenger.com");
-
-	loginWindow.webContents.on("did-navigate", (event, url) => {
-		if (url.startsWith("https://www.messenger.com/t") || url.startsWith("https://www.messenger.com/e2ee")) {
-			createChatWindow(url);
-			loginWindow.close();
-		}
+    contentView.webContents.on("did-stop-loading", () => {
+		console.log("did-stop-loading: ", currentURL);
+		updateAddressBar(currentURL, false)
 	});
+
+    contentView.webContents.on("did-navigate", (_e, url) => {
+        currentURL = url;
+        updateAddressBar(currentURL, contentView.webContents.isLoadingMainFrame());
+
+        if (url.startsWith("https://www.messenger.com/t") || url.startsWith("https://www.messenger.com/e2ee")) {
+            app.dontQuitOnCloseLoginWindow = true;
+            createChatWindow(url);
+            loginWindow.close();
+        } else {
+            loginWindow.show();
+        }
+
+        onLoaded();
+    });
+
+    contentView.webContents.on("did-navigate-in-page", (_e, url) => {
+        currentURL = url;
+        updateAddressBar(currentURL, contentView.webContents.isLoadingMainFrame());
+    });
 }
 
 /**
  * @param continueFromURL {string}
  */
 function createChatWindow(continueFromURL) {
-    const isMac = process.platform === "darwin";
-    const isWin = process.platform === "win32";
-
     const titleBarHeight = 32;
 
     chatWindow = new BrowserWindow({
         width: 1280,
         height: 780,
         title: "Metagrave",
-        frame: !isWin, // Windows: frameless; macOS: use hidden title bar with native traffic lights
-        titleBarStyle: isMac ? "hidden" : undefined,
-        trafficLightPosition: isMac ? {x: 12, y: 10} : undefined, // custom location for macOS traffic lights
+        frame: !p.isWin, // Windows: frameless; macOS: use hidden title bar with native traffic lights
+        titleBarStyle: p.isMac ? "hidden" : undefined,
+        trafficLightPosition: p.isMac ? {x: 12, y: 10} : undefined, // custom location for macOS traffic lights
         autoHideMenuBar: true,
         backgroundColor: "#1e1e1e",
         webPreferences: {
@@ -60,7 +182,7 @@ function createChatWindow(continueFromURL) {
     });
 
     // Ensure macOS traffic lights are visible when using the hidden title bar
-    if (isMac) {
+    if (p.isMac) {
 		chatWindow.setWindowButtonVisibility(true);
     }
 
@@ -74,8 +196,17 @@ function createChatWindow(continueFromURL) {
         {
             label: "File",
             submenu: [
-                {role: "quit"}
-            ]
+				{
+					label: "Clear data and restart",
+					click: () => {
+						session.defaultSession.clearStorageData();
+						app.relaunch();
+						app.exit(0);
+					}
+				},
+				{type: "separator"},
+				{role: "quit"}
+			]
         },
         {
             label: "View",
@@ -95,7 +226,7 @@ function createChatWindow(continueFromURL) {
 
     let titleBarView = null;
     let topOffset = 0;
-    if (isWin) {
+    if (p.isWin) {
         titleBarView = new WebContentsView({
             webPreferences: {
                 nodeIntegration: true,
@@ -115,7 +246,7 @@ function createChatWindow(continueFromURL) {
     };
 
     if (titleBarView) {
-        titleBarView.webContents.loadFile("windows_titlebar.html");
+        titleBarView.webContents.loadFile("embed/windows_titlebar.html");
     }
 
     const contentView = new WebContentsView({
@@ -127,7 +258,11 @@ function createChatWindow(continueFromURL) {
     chatWindow.contentView.addChildView(contentView);
 
     try {
-        const platform = process.platform; // e.g. "darwin", "win32", "linux"
+		let platform = "linux";
+
+		if 		(p.isMac) 	platform = "darwin";
+		else if (p.isWin) 	platform = "win32";
+
         const appPath = app.getAppPath();
         const injectDir = path.join(appPath, "inject");
         const commonPath = path.join(injectDir, "common.css");
@@ -162,7 +297,7 @@ function createChatWindow(continueFromURL) {
 
     chatWindow.on("resize", applyLayout);
 
-    if (isWin) {
+    if (p.isWin) {
         ipcMain.removeAllListeners("window-control");
         ipcMain.on("window-control", (event, action) => {
             if (!chatWindow) return;
@@ -193,15 +328,16 @@ function createChatWindow(continueFromURL) {
 }
 
 app.whenReady().then(() => {
-	createLoginWindow();
+    createSplashWindow();
 
-	app.on("activate", () => {
-		chatWindow?.show();
-	});
+    app.on("activate", () => {
+        chatWindow?.show();
+    });
 });
 
 app.on("before-quit", () => {
-	chatWindow?.destroy();
+    app.isQuitting = true;
+    chatWindow?.destroy();
 });
 
 app.on("window-all-closed", () => {

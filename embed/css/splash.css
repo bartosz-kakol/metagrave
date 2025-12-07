@@ -1,0 +1,53 @@
+:root {
+    --bg: rgba(20, 20, 20, 0.15);
+    --fg: #eaeaea;
+    --muted: #bdbdbd;
+    --accent: #7b61ff;
+}
+
+html, body {
+    margin: 0;
+    height: 100%;
+    background: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    color: var(--fg);
+}
+
+.shell {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    align-items: center;
+    justify-items: center;
+    padding: 18px 20px 14px;
+    box-sizing: border-box;
+    border-radius: 14px;
+    background: var(--bg);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4);
+    /*-webkit-app-region: drag;*/
+}
+
+.logo {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.logo svg {
+    width: 72%;
+    height: auto;
+    max-height: 120px;
+}
+
+.foot {
+    width: 100%;
+    text-align: center;
+    font-size: 12.5px;
+    line-height: 1.2;
+    color: var(--muted);
+    -webkit-app-region: no-drag;
+}
