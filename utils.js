@@ -6,6 +6,7 @@ const appPath = app.getAppPath();
 /**
  * @param template {string[]}
  * @param args {Array}
+ * @returns {string}
  */
 function p(template, ...args) {
 	let string = template[0] ?? "";
