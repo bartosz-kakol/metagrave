@@ -1,7 +1,8 @@
-const {app, BrowserWindow, Menu, ipcMain, WebContentsView, session} = require("electron");
+const {app, BrowserWindow, Menu, ipcMain, WebContentsView, session, Tray} = require("electron");
 const fs = require("fs");
 const path = require("path");
-const p = require("./platform_detect");
+const platform = require("./platform_detect");
+const {p} = require("./utils");
 
 /** @type {ElectronBrowserWindow} */
 let splashWindow;
@@ -9,6 +10,28 @@ let splashWindow;
 let loginWindow;
 /** @type {ElectronBrowserWindow} */
 let chatWindow;
+
+/** @type {?ElectronTray} */
+let tray = null;
+
+function setupTray() {
+	tray = new Tray(
+		process.platform === "win32" ? p`resources/tray/win.ico` : p`resources/tray/default.png`,
+		"a3883e0d-0636-4a7b-a5b8-f0e57b861c62"
+	);
+
+	tray.setToolTip("Metagrave");
+
+	tray.setContextMenu(Menu.buildFromTemplate([
+		{label: "Open", click: () => chatWindow?.show()},
+		{type: "separator"},
+		{label: "Quit", click: () => app.quit()}
+	]));
+
+	tray.on("click", () => {
+		chatWindow?.show();
+	});
+}
 
 function createSplashWindow() {
     splashWindow = new BrowserWindow({
@@ -22,9 +45,9 @@ function createSplashWindow() {
         center: true,
         show: false,
         skipTaskbar: true,
-        backgroundColor: !p.isOther ? "#00000000" : "#1A1A1A",
-        vibrancy: p.isMac ? "under-window" : undefined,
-        visualEffectState: p.isMac ? "active" : undefined,
+        backgroundColor: !platform.isOther ? "#00000000" : "#1A1A1A",
+        vibrancy: platform.isMac ? "under-window" : undefined,
+        visualEffectState: platform.isMac ? "active" : undefined,
         webPreferences: {
             nodeIntegration: false,
             sandbox: true
@@ -33,7 +56,7 @@ function createSplashWindow() {
 
     splashWindow.setMenuBarVisibility(false);
 
-    if (p.isWin && typeof splashWindow.setBackgroundMaterial === "function") {
+    if (platform.isWin && typeof splashWindow.setBackgroundMaterial === "function") {
         try {
             splashWindow.setBackgroundMaterial("acrylic");
         } catch (_) {
@@ -82,7 +105,21 @@ function createLoginWindow(onLoaded) {
             submenu: [
                 {role: "quit"}
             ]
-        }
+        },
+		{
+			label: "Edit",
+			submenu: [
+				{role: "undo"},
+				{role: "redo"},
+				{type: "separator"},
+				{role: "cut"},
+				{role: "copy"},
+				{role: "paste"},
+				{role: "delete"},
+				{type: "separator"},
+				{role: "selectAll"}
+			]
+		}
     ]);
     Menu.setApplicationMenu(menu);
 
@@ -118,6 +155,21 @@ function createLoginWindow(onLoaded) {
         app.isQuitting = true;
         app.quit();
     });
+
+	loginWindow.webContents.on("context-menu", (event, params) => {
+		const template = [
+			{ role: "undo", enabled: params.editFlags.canUndo },
+			{ role: "redo", enabled: params.editFlags.canRedo },
+			{ type: "separator" },
+			{ role: "cut", enabled: params.editFlags.canCut },
+			{ role: "copy", enabled: params.editFlags.canCopy },
+			{ role: "paste", enabled: params.editFlags.canPaste },
+			{ type: "separator" },
+			{ role: "selectAll" }
+		];
+		const ctx = Menu.buildFromTemplate(template);
+		ctx.popup({ window: chatWindow });
+	});
 
     const initialURL = "https://www.messenger.com";
     contentView.webContents.loadURL(initialURL);
@@ -171,9 +223,9 @@ function createChatWindow(continueFromURL) {
         width: 1280,
         height: 780,
         title: "Metagrave",
-        frame: !p.isWin, // Windows: frameless; macOS: use hidden title bar with native traffic lights
-        titleBarStyle: p.isMac ? "hidden" : undefined,
-        trafficLightPosition: p.isMac ? {x: 12, y: 10} : undefined, // custom location for macOS traffic lights
+        frame: !platform.isWin, // Windows: frameless; macOS: use hidden title bar with native traffic lights
+        titleBarStyle: platform.isMac ? "hidden" : undefined,
+        trafficLightPosition: platform.isMac ? {x: 12, y: 10} : undefined, // custom location for macOS traffic lights
         autoHideMenuBar: true,
         backgroundColor: "#1e1e1e",
         webPreferences: {
@@ -182,7 +234,7 @@ function createChatWindow(continueFromURL) {
     });
 
     // Ensure macOS traffic lights are visible when using the hidden title bar
-    if (p.isMac) {
+    if (platform.isMac) {
 		chatWindow.setWindowButtonVisibility(true);
     }
 
@@ -204,15 +256,32 @@ function createChatWindow(continueFromURL) {
 						app.exit(0);
 					}
 				},
+				{
+					label: "Open DevTools",
+					click: () => chatWindow.webContents.openDevTools({ mode: "detach" })
+				},
 				{type: "separator"},
 				{role: "quit"}
 			]
         },
         {
+            label: "Edit",
+            submenu: [
+                {role: "undo"},
+                {role: "redo"},
+                {type: "separator"},
+                {role: "cut"},
+                {role: "copy"},
+                {role: "paste"},
+                {role: "delete"},
+                {type: "separator"},
+                {role: "selectAll"}
+            ]
+        },
+        {
             label: "View",
             submenu: [
                 {role: "reload"},
-                {role: "toggleDevTools"},
                 {type: "separator"},
                 {role: "resetZoom"},
                 {role: "zoomIn"},
@@ -224,9 +293,13 @@ function createChatWindow(continueFromURL) {
     ]);
     Menu.setApplicationMenu(menu);
 
+	if (!platform.isMac) {
+		setupTray();
+	}
+
     let titleBarView = null;
     let topOffset = 0;
-    if (p.isWin) {
+    if (platform.isWin) {
         titleBarView = new WebContentsView({
             webPreferences: {
                 nodeIntegration: true,
@@ -257,26 +330,44 @@ function createChatWindow(continueFromURL) {
     });
     chatWindow.contentView.addChildView(contentView);
 
+    contentView.webContents.on("context-menu", (event, params) => {
+        const template = [
+            { role: "undo", enabled: params.editFlags.canUndo },
+            { role: "redo", enabled: params.editFlags.canRedo },
+            { type: "separator" },
+            { role: "cut", enabled: params.editFlags.canCut },
+            { role: "copy", enabled: params.editFlags.canCopy },
+            { role: "paste", enabled: params.editFlags.canPaste },
+            { type: "separator" },
+            { role: "selectAll" }
+        ];
+        const ctx = Menu.buildFromTemplate(template);
+        ctx.popup({ window: chatWindow });
+    });
+
     try {
-		let platform = "linux";
+		let platformName = "linux";
 
-		if 		(p.isMac) 	platform = "darwin";
-		else if (p.isWin) 	platform = "win32";
+		if 		(platform.isMac) 	platformName = "macos";
+		else if (platform.isWin) 	platformName = "windows";
 
-        const appPath = app.getAppPath();
-        const injectDir = path.join(appPath, "inject");
+        const injectDir = p`inject`;
         const commonPath = path.join(injectDir, "common.css");
-        const platformPath = path.join(injectDir, `${platform}.css`);
+        const platformPath = path.join(injectDir, `${platformName}.css`);
 
         let cssToInject = "";
 
         if (fs.existsSync(commonPath)) {
             cssToInject += fs.readFileSync(commonPath, "utf8") + "\n";
-        }
+        } else {
+			console.warn(`No common.css found in ${injectDir}`);
+		}
 
         if (fs.existsSync(platformPath)) {
             cssToInject += fs.readFileSync(platformPath, "utf8") + "\n";
-        }
+        } else {
+			console.warn(`No ${platformName}.css found in ${injectDir}`);
+		}
 
         if (cssToInject.trim().length > 0) {
             const inject = () => {
@@ -297,7 +388,7 @@ function createChatWindow(continueFromURL) {
 
     chatWindow.on("resize", applyLayout);
 
-    if (p.isWin) {
+    if (platform.isWin) {
         ipcMain.removeAllListeners("window-control");
         ipcMain.on("window-control", (event, action) => {
             if (!chatWindow) return;
@@ -316,10 +407,8 @@ function createChatWindow(continueFromURL) {
     }
 
 	chatWindow.on("close", event => {
-		if (p.isMac) {
-			event.preventDefault();
-			chatWindow.hide();
-		}
+		event.preventDefault();
+		chatWindow.hide();
     });
 
 	chatWindow.on("closed", () => {
@@ -343,7 +432,7 @@ app.on("before-quit", () => {
 });
 
 app.on("window-all-closed", () => {
-	if (!p.isMac) {
+	if (!platform.isMac && !tray) {
 		app.quit();
 	}
 });

@@ -1,5 +1,6 @@
 @font-face {
     font-family: "Zen Dots";
+    /*noinspection CssUnknownTarget*/
     src: url("../fonts/ZenDots.ttf") format("truetype");
     font-weight: normal;
     font-style: normal;

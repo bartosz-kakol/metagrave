@@ -1,0 +1,6 @@
+html > body > div:first-of-type > div > div > div > div > div:nth-of-type(2) > div > div > div:first-of-type > div:first-of-type > div {
+    /* Less space at the top */
+    /*margin-top: 4px !important;*/
+    /* Correction for spacing at the bottom */
+    /*--header-height: -12px !important;*/
+}

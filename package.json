@@ -21,6 +21,7 @@
   },
   "build": {
     "appId": "pl.bartekk.metagrave",
+    "productName": "Metagrave",
     "dmg": {
       "title": "${productName} ${version} Installer",
       "background": "build/dmg/background.tiff",
