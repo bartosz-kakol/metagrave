@@ -1,4 +1,4 @@
-const {app, BrowserWindow, Menu, ipcMain, WebContentsView, session, Tray} = require("electron");
+const {app, BrowserWindow, Menu, ipcMain, WebContentsView, session, Tray, shell} = require("electron");
 const fs = require("fs");
 const path = require("path");
 const platform = require("./platform_detect");
@@ -258,7 +258,7 @@ function createChatWindow(continueFromURL) {
 				},
 				{
 					label: "Open DevTools",
-					click: () => chatWindow.webContents.openDevTools({ mode: "detach" })
+					click: () => contentView.webContents.openDevTools({ mode: "detach" })
 				},
 				{type: "separator"},
 				{role: "quit"}
@@ -281,27 +281,48 @@ function createChatWindow(continueFromURL) {
         {
             label: "View",
             submenu: [
-                {role: "reload"},
-                {type: "separator"},
-                {role: "resetZoom"},
-                {role: "zoomIn"},
-                {role: "zoomOut"},
-                {type: "separator"},
-                {role: "togglefullscreen"}
-            ]
-        }
-    ]);
-    Menu.setApplicationMenu(menu);
+				{
+					label: "Reload",
+					accelerator: "CmdOrCtrl+R",
+					click: () => contentView.webContents.reload()
+				},
+				{type: "separator"},
+				{
+					label: "Reset Zoom",
+					accelerator: "CmdOrCtrl+0",
+					click: () => contentView.webContents.setZoomLevel(0)
+				},
+				{
+					label: "Zoom In",
+					accelerator: "CmdOrCtrl+Plus",
+					click: () => {
+						const currentZoom = contentView.webContents.getZoomLevel();
+						contentView.webContents.setZoomLevel(currentZoom + 0.5);
+					}
+				},
+				{
+					label: "Zoom Out",
+					accelerator: "CmdOrCtrl+-",
+					click: () => {
+						const currentZoom = contentView.webContents.getZoomLevel();
+						contentView.webContents.setZoomLevel(currentZoom - 0.5);
+					}
+				}
+			]
+		},
+		{role: "windowMenu"}
+	]);
+	Menu.setApplicationMenu(menu);
 
 	if (!platform.isMac) {
 		setupTray();
 	}
 
-    let titleBarView = null;
-    let topOffset = 0;
-    if (platform.isWin) {
-        titleBarView = new WebContentsView({
-            webPreferences: {
+	let titleBarView = null;
+	let topOffset = 0;
+	if (platform.isWin) {
+		titleBarView = new WebContentsView({
+			webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
             }
@@ -331,7 +352,31 @@ function createChatWindow(continueFromURL) {
     chatWindow.contentView.addChildView(contentView);
 
     contentView.webContents.on("context-menu", (event, params) => {
-        const template = [
+        const template = [];
+
+        const isImage = params.mediaType === "image" && !!params.srcURL;
+        if (isImage) {
+            template.push(
+                {
+                    label: "Copy image",
+                    click: () => {
+                        try {
+                            contentView.webContents.copyImageAt(params.x, params.y);
+                        } catch (_) {}
+                    }
+                },
+                {
+                    label: "Open image in browser window",
+                    enabled: !!params.srcURL,
+                    click: () => {
+                        if (params.srcURL) shell.openExternal(params.srcURL);
+                    }
+                },
+                { type: "separator" }
+            );
+        }
+
+        template.push(
             { role: "undo", enabled: params.editFlags.canUndo },
             { role: "redo", enabled: params.editFlags.canRedo },
             { type: "separator" },
@@ -340,7 +385,8 @@ function createChatWindow(continueFromURL) {
             { role: "paste", enabled: params.editFlags.canPaste },
             { type: "separator" },
             { role: "selectAll" }
-        ];
+        );
+
         const ctx = Menu.buildFromTemplate(template);
         ctx.popup({ window: chatWindow });
     });

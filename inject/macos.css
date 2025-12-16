@@ -21,6 +21,12 @@ html > body > div:first-of-type > div > div > div > div > div:nth-of-type(2) > d
     display: none !important;
 }
 
+/* Close image button in image preview */
+html > body > div:first-of-type > div > div > div > div > div:nth-of-type(4) > div > div > div:nth-of-type(3) > div:first-of-type {
+    top: 32px !important;
+}
+
+/* Window drag region in the upper 32px of the window */
 html > body::after {
     position: absolute;
     top: 0;
