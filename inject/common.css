@@ -1,0 +1,13 @@
+:root,
+html#facebook > body,
+.__fb-dark-mode,
+.__fb-dark-mode:root,
+.__fb-light-mode,
+.__fb-light-mode:root {
+    --header-height: 0px !important;
+}
+
+/* The top Facebook toolbar */
+div[role="banner"] {
+    display: none !important;
+}

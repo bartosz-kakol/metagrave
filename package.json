@@ -1,12 +1,12 @@
 {
   "name": "metagrave",
-  "version": "1.0.0",
+  "version": "1.1.0-nightly",
   "author": {
     "name": "bartekk",
     "email": "bartekk.github@pm.me"
   },
   "homepage": "https://github.com/bartosz-kakol/metagrave",
-  "description": "",
+  "description": "A beautiful cross-platform alternative Facebook Messenger desktop application with support for custom themes and extensions.",
   "main": "index.js",
   "scripts": {
     "start": "electron .",
@@ -15,6 +15,10 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "private": true,
+  "dependencies": {
+    "electron-store": "^11.0.2",
+    "semver": "^7.7.3"
+  },
   "devDependencies": {
     "electron": "^39.2.4",
     "electron-builder": "^26.0.12"
@@ -34,13 +38,13 @@
       },
       "contents": [
         {
-          "x": 180,
+          "x": 100,
           "y": 170,
           "type": "file",
           "path": ""
         },
         {
-          "x": 360,
+          "x": 440,
           "y": 170,
           "type": "link",
           "path": "/Applications"
@@ -48,16 +52,24 @@
       ]
     },
     "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico"
+      "target": [
+        "nsis"
+      ]
     },
     "mac": {
-      "target": ["dir", "dmg"],
-      "icon": "build/icon.icns"
+      "category": "public.app-category.social-networking",
+      "notarize": false,
+      "target": [
+        "dir",
+        "dmg"
+      ]
     },
     "linux": {
-      "target": ["deb", "AppImage"],
-      "icon": "build/icon.png"
+      "category": "Network;Chat;InstantMessaging;",
+      "target": [
+        "deb",
+        "AppImage"
+      ]
     }
   }
 }

@@ -1,7 +1,7 @@
 @font-face {
-    font-family: "Zen Dots";
+    font-family: "Zen Dots MetagraveEmbedded";
     /*noinspection CssUnknownTarget*/
-    src: url("../fonts/ZenDots.ttf") format("truetype");
+    src: url("../fonts/ZenDots-Regular.ttf") format("truetype");
     font-weight: normal;
     font-style: normal;
 }

@@ -10,6 +10,7 @@ function createLoginWindow(onLoaded) {
 		minWidth: 800,
 		height: 600,
 		minHeight: 600,
+		title: "Metagrave - Log in to Messenger",
 		webPreferences: {
 			nodeIntegration: false,
 		},
@@ -19,7 +20,9 @@ function createLoginWindow(onLoaded) {
 	const menu = Menu.buildFromTemplate([
 		{
 			label: "File",
-			submenu: [{role: "quit"}],
+			submenu: [
+				{role: "quit"}
+			],
 		},
 		{
 			label: "Edit",
@@ -35,6 +38,7 @@ function createLoginWindow(onLoaded) {
 				{role: "selectAll"},
 			],
 		},
+		{role: "help"},
 	]);
 	Menu.setApplicationMenu(menu);
 
@@ -85,7 +89,7 @@ function createLoginWindow(onLoaded) {
 		ctx.popup({window: getChatWindow()});
 	});
 
-	const initialURL = "https://www.messenger.com";
+	const initialURL = "https://www.facebook.com/messages";
 	contentView.webContents.loadURL(initialURL);
 
 	const updateAddressBar = (url, loading) => {
@@ -111,7 +115,7 @@ function createLoginWindow(onLoaded) {
 		currentURL = url;
 		updateAddressBar(currentURL, contentView.webContents.isLoadingMainFrame());
 
-		if (url.startsWith("https://www.messenger.com/t") || url.startsWith("https://www.messenger.com/e2ee")) {
+		if (url.startsWith("https://www.facebook.com/messages/t") || url.startsWith("https://www.facebook.com/messages/e2ee")) {
 			app.dontQuitOnCloseLoginWindow = true;
 			createChatWindow(url);
 			loginWindow.close();

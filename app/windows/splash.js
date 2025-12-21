@@ -1,5 +1,6 @@
-const {BrowserWindow, app} = require("electron");
+const {BrowserWindow, app, ipcMain, Menu} = require("electron");
 const platform = require("../../platform_detect");
+const {p} = require("../../utils");
 
 function createSplashWindow() {
 	const splashWindow = new BrowserWindow({
@@ -13,13 +14,18 @@ function createSplashWindow() {
 		center: true,
 		show: false,
 		skipTaskbar: true,
-		backgroundColor: !platform.isOther ? "#00000000" : "#1A1A1A",
+		backgroundColor: "#00000000",
 		vibrancy: platform.isMac ? "under-window" : undefined,
 		visualEffectState: platform.isMac ? "active" : undefined,
 		webPreferences: {
 			nodeIntegration: false,
 			sandbox: true,
+			preload: p`app/preload/splash.js`,
 		},
+	});
+
+	ipcMain.handle("app:get-version", () => {
+		return app.getVersion();
 	});
 
 	splashWindow.setMenuBarVisibility(false);
@@ -33,6 +39,10 @@ function createSplashWindow() {
 	}
 
 	splashWindow.once("ready-to-show", () => {
+		if (platform.isOther) {
+			splashWindow.webContents.send("splash:opaque-background");
+		}
+
 		splashWindow.show();
 	});
 

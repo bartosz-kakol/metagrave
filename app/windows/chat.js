@@ -6,6 +6,10 @@ const {p} = require("../../utils");
 const {setupTray} = require("../tray");
 const {setChatWindow} = require("../state");
 
+async function clearAllSessionData() {
+	await session.defaultSession.clearStorageData();
+}
+
 function createChatWindow(continueFromURL) {
 	const titleBarHeight = 32;
 
@@ -45,9 +49,14 @@ function createChatWindow(continueFromURL) {
 				{
 					label: "Clear data and restart",
 					click: () => {
-						session.defaultSession.clearStorageData();
-						app.relaunch();
-						app.exit(0);
+						clearAllSessionData()
+							.then(() => {
+								app.relaunch();
+								app.exit(0);
+							})
+							.catch(e => {
+								console.error(e);
+							});
 					},
 				},
 				{
@@ -105,6 +114,7 @@ function createChatWindow(continueFromURL) {
 			],
 		},
 		{role: "windowMenu"},
+		{role: "help"},
 	]);
 	Menu.setApplicationMenu(menu);
 
@@ -114,7 +124,7 @@ function createChatWindow(continueFromURL) {
 
 	let titleBarView = null;
 	let topOffset = 0;
-	if (platform.isWin) {
+	if (!platform.isOther) {
 		titleBarView = new WebContentsView({
 			webPreferences: {
 				nodeIntegration: true,
@@ -134,13 +144,14 @@ function createChatWindow(continueFromURL) {
 	};
 
 	if (titleBarView) {
-		titleBarView.webContents.loadFile("embed/windows_titlebar.html");
+		titleBarView.webContents.loadFile("embed/titlebar.html");
 	}
 
 	const contentView = new WebContentsView({
 		webPreferences: {
 			nodeIntegration: false,
 			sandbox: true,
+			preload: p`app/preload/chat.js`,
 		},
 	});
 	chatWindow.contentView.addChildView(contentView);
@@ -152,7 +163,7 @@ function createChatWindow(continueFromURL) {
 		if (isImage) {
 			template.push(
 				{
-					label: "Copy image",
+					label: "Copy image to clipboard",
 					click: () => {
 						try {
 							contentView.webContents.copyImageAt(params.x, params.y);
@@ -161,7 +172,7 @@ function createChatWindow(continueFromURL) {
 					},
 				},
 				{
-					label: "Open image in browser window",
+					label: "Open image in Browser",
 					enabled: !!params.srcURL,
 					click: () => {
 						if (params.srcURL) shell.openExternal(params.srcURL);
@@ -209,10 +220,14 @@ function createChatWindow(continueFromURL) {
 
 		if (cssToInject.trim().length > 0) {
 			const inject = () => {
-				contentView.webContents.insertCSS(cssToInject).catch(() => {
-				});
+				contentView.webContents.insertCSS(cssToInject)
+					.catch(reason => {
+						console.warn(`Failed to inject CSS: ${reason}`);
+					});
 			};
-			contentView.webContents.on("did-finish-load", inject);
+
+			contentView.webContents.on("did-navigate", inject);
+
 			if (contentView.webContents.isLoadingMainFrame() === false) {
 				inject();
 			}
@@ -224,24 +239,28 @@ function createChatWindow(continueFromURL) {
 	applyLayout();
 	chatWindow.on("resize", applyLayout);
 
-	if (platform.isWin) {
-		ipcMain.removeAllListeners("window-control");
-		ipcMain.on("window-control", (event, action) => {
-			if (!chatWindow) return;
-			switch (action) {
-				case "minimize":
-					chatWindow.minimize();
-					break;
-				case "maximize":
-					if (chatWindow.isMaximized()) chatWindow.unmaximize();
-					else chatWindow.maximize();
-					break;
-				case "close":
-					chatWindow.close();
-					break;
-			}
-		});
-	}
+	ipcMain.removeAllListeners("titlebar:window-control");
+	ipcMain.on("titlebar:window-control", (event, action) => {
+		if (!chatWindow) return;
+		switch (action) {
+			case "minimize":
+				chatWindow.minimize();
+				break;
+			case "maximize":
+				if (chatWindow.isMaximized()) chatWindow.unmaximize();
+				else chatWindow.maximize();
+				break;
+			case "close":
+				chatWindow.close();
+				break;
+		}
+	});
+
+	ipcMain.on("chat:set-profile", (event, avatarURL, name) => {
+		if (titleBarView) {
+			titleBarView.webContents.send("titlebar:set-profile", avatarURL, name);
+		}
+	});
 
 	chatWindow.on("close", (event) => {
 		event.preventDefault();
