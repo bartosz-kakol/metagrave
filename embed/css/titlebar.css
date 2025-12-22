@@ -14,6 +14,7 @@ body {
     padding: 0 0 0 8px;
     box-sizing: border-box;
     font-family: sans-serif;
+    gap: 4px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -21,40 +22,6 @@ body {
         background: #FFF;
         border-color: #E5E5E5;
         color: #333;
-    }
-}
-
-.btn {
-    width: 46px;
-    height: 100%;
-    app-region: no-drag;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: default;
-    transition: background 0.1s ease-in-out;
-}
-
-.btn:hover {
-    background: #3a3a3a;
-}
-
-.btn.close:hover {
-    background: #e81123;
-    color: white;
-}
-
-.btn > svg > path {
-    fill: white;
-}
-
-@media (prefers-color-scheme: light) {
-    .btn > svg > path {
-        fill: #111;
-    }
-
-    .btn:hover {
-        background: #d5d4d4;
     }
 }
 
@@ -69,4 +36,106 @@ body[data-platform="macos"]     .region.platform-macos,
 body[data-platform="windows"]   .region.platform-windows,
 body[data-platform="other"]     .region.platform-other {
     display: flex;
+}
+
+.btn-windows {
+    width: 46px;
+    height: 100%;
+    app-region: no-drag;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    transition: background 0.1s ease-in-out;
+
+    &:hover {
+        background: #3a3a3a;
+    }
+
+    &:active {
+        transition-duration: 0s;
+        background: #4e4e4e;
+    }
+
+    &.close:hover {
+        background: #e81123;
+        color: white;
+    }
+
+    &.close:active {
+        background: #f83543;
+        color: white;
+    }
+
+    > svg > path {
+        fill: white;
+    }
+}
+
+.btn-universal {
+    --btn-universal-size: 20px;
+    width: var(--btn-universal-size);
+    height: var(--btn-universal-size);
+    app-region: no-drag;
+    border-radius: calc(var(--btn-universal-size) / 2);
+    background: red;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn {
+    color: white;
+    app-region: no-drag;
+    padding: 0 4px;
+    height: 24px;
+    border-radius: 4px;
+    transition: background 0.1s ease-in-out;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+
+    &:hover {
+        background: #3a3a3a;
+    }
+
+    &:active {
+        transition-duration: 0s;
+        background: #4e4e4e;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    .btn-windows, .btn {
+        &:hover {
+            background: #d5d4d4;
+        }
+
+        &:active {
+            background: #aeaeae;
+        }
+    }
+
+    .btn-windows {
+        > svg > path {
+            fill: #111;
+        }
+    }
+
+    .btn {
+        color: #111;
+    }
+}
+
+/*
+If on MacOS, round the top right portion of the last button to take the rounded corner into account
+(4th .btn div from the end, because skipping window controls and the spacer)
+*/
+body[data-platform="macos"] .titlebar > .btn:nth-last-of-type(4) {
+    border-top-right-radius: 12px;
+}
+
+#profile-pfp {
+    border-radius: 100%;
+    margin-right: 4px;
 }

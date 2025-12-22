@@ -1,8 +1,8 @@
-const {BrowserWindow, Menu, WebContentsView, app, ipcMain} = require("electron");
-const {getChatWindow} = require("../state");
-const {createChatWindow} = require("./chat");
+import {BrowserWindow, Menu, WebContentsView, app, ipcMain} from "electron";
+import {getChatWindow} from "../state.js";
+import {createChatWindow} from "./chat.js";
 
-function createLoginWindow(onLoaded) {
+export function createLoginWindow(onLoaded) {
 	const addressBarHeight = 28;
 
 	const loginWindow = new BrowserWindow({
@@ -133,5 +133,3 @@ function createLoginWindow(onLoaded) {
 
 	return loginWindow;
 }
-
-module.exports = {createLoginWindow};

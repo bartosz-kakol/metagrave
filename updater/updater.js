@@ -1,8 +1,8 @@
-const {app} = require("electron");
-const fs = require("fs");
-const EventEmitter = require("node:events");
-const semver = require("semver");
-const {p} = require("../utils");
+import {app} from "electron";
+import fs from "fs";
+import EventEmitter from "node:events";
+import semver from "semver";
+import {p} from "../utils.js";
 
 /**
  * @typedef {Object} UpdaterOptions
@@ -52,7 +52,7 @@ class Updater extends EventEmitter {
 
 		console.log(`Using updater config: ${configPath}`);
 
-		return require(configPath);
+		return JSON.parse(fs.readFileSync(configPath, "utf8"));
 	}
 
 	/**
@@ -79,4 +79,4 @@ class Updater extends EventEmitter {
 	}
 }
 
-module.exports = Updater;
+export default Updater;

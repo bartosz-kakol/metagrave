@@ -1,0 +1,7 @@
+{
+  "chatElements": {
+    "facebookTopBanner": "div[role=\"banner\"]",
+    "profileButton": "html > body > div:first-of-type > div > div:first-of-type > div > div:nth-of-type(2) > div:nth-of-type(5) > div:first-of-type > span > div > div:first-of-type > div",
+    "profileNameLabel": "html > body > div:first-of-type > div > div:first-of-type > div > div:nth-of-type(2) > div:nth-of-type(5) > div:nth-of-type(2) > div > div:nth-of-type(2) > div:first-of-type > div:first-of-type > div > div > div > div > div > div > div > div > div > div:first-of-type > div > div > div:first-of-type > div:first-of-type > div > div > a > div:first-of-type > div:nth-of-type(2) > span"
+  }
+}

@@ -9,5 +9,18 @@ html#facebook > body,
 
 /* The top Facebook toolbar */
 div[role="banner"] {
-    display: none !important;
+    > div {
+        overflow: hidden !important;
+    }
+}
+
+body[data-metagrave-show-profile-menu="1"] {
+    /* This is where the profile menu lives */
+    div[role="banner"] > div:nth-child(5) {
+        overflow: revert !important;
+
+        > div:nth-child(1) {
+            overflow: hidden !important;
+        }
+    }
 }

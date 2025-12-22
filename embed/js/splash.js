@@ -5,6 +5,6 @@ window.api.getAppVersion()
 		versionContainer.innerText = version;
 	});
 
-window.api.onOpaqueBackground(() => {
+window.api.onRequestNoTransparency(() => {
 	document.body.classList.add("opaque-background");
 });

@@ -1,4 +1,4 @@
-const {contextBridge, ipcRenderer} = require("electron");
+import {contextBridge, ipcRenderer} from "electron";
 
 contextBridge.exposeInMainWorld("api", {
 	/**
@@ -6,5 +6,8 @@ contextBridge.exposeInMainWorld("api", {
 	 */
 	getAppVersion: () => ipcRenderer.invoke("app:get-version"),
 
-	onOpaqueBackground: callback => ipcRenderer.on("splash:opaque-background", callback),
+	/**
+	 * @param callback {function}
+	 */
+	onRequestNoTransparency: callback => void ipcRenderer.on("splash:request-no-transparency", callback),
 });

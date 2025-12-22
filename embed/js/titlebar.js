@@ -1,6 +1,6 @@
-const { ipcRenderer } = require("electron");
+const {ipcRenderer} = require("electron");
 // noinspection JSFileReferences
-const platform = require("../platform_detect");
+const platform = require("../platform_detect.js");
 
 let platformString = "other";
 
@@ -10,20 +10,43 @@ if (platform.isWin) {
 	platformString = "macos";
 }
 
-document.body.setAttribute("data-platform", platformString);
+for (const action of ["minimize", "maximize", "close"]) {
+	const elements = document.getElementsByClassName(action);
 
-document.getElementById("min").addEventListener("click", () => {
-	ipcRenderer.send("titlebar:window-control", "minimize");
-});
+	for (const element of elements) {
+		element.addEventListener("click", () => {
+			ipcRenderer.send("titlebar:window-control", action);
+		});
+	}
+}
 
-document.getElementById("max").addEventListener("click", () => {
-	ipcRenderer.send("titlebar:window-control", "maximize");
-});
-
-document.getElementById("close").addEventListener("click", () => {
-	ipcRenderer.send("titlebar:window-control", "close");
+document.getElementById("settings").addEventListener("click", () => {
+	ipcRenderer.send("settings:open");
 });
 
 ipcRenderer.on("titlebar:set-profile", (_e, avatarURL, name) => {
-	// TODO
+	const profileElement = document.getElementById("profile");
+	profileElement.style.visibility = "visible";
+
+	const profilePfpElement = document.getElementById("profile-pfp");
+	profilePfpElement.setAttribute("src", avatarURL);
+	profilePfpElement.setAttribute("alt", name);
+
+	const profileNameElement = document.getElementById("profile-name");
+	profileNameElement.textContent = name;
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+	document.body.setAttribute("data-platform", platformString);
+
+	const profilePfpElement = document.getElementById("profile-pfp");
+	profilePfpElement.addEventListener("error", event => {
+		console.warn(event);
+		// Set empty image
+		event.target.setAttribute("src", "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==");
+	});
+
+	document.getElementById("profile").addEventListener("click", () => {
+		ipcRenderer.send("titlebar:open-profile-menu");
+	});
 });

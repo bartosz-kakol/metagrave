@@ -1,16 +1,18 @@
-const {BrowserWindow, Menu, WebContentsView, session, ipcMain, shell, app} = require("electron");
-const fs = require("fs");
-const path = require("path");
-const platform = require("../../platform_detect");
-const {p} = require("../../utils");
-const {setupTray} = require("../tray");
-const {setChatWindow} = require("../state");
+import {BrowserWindow, Menu, WebContentsView, session, ipcMain, shell, app} from "electron";
+import fs from "fs";
+import path from "path";
+import * as platform from "../../platform_detect.js";
+import {p} from "../../utils.js";
+import {setupTray} from "../tray.js";
+import {setChatWindow} from "../state.js";
+import {createSettingsWindow} from "./settings.js";
+import misc from "../misc.json" with {type: "json"};
 
 async function clearAllSessionData() {
 	await session.defaultSession.clearStorageData();
 }
 
-function createChatWindow(continueFromURL) {
+export function createChatWindow(continueFromURL) {
 	const titleBarHeight = 32;
 
 	const chatWindow = new BrowserWindow({
@@ -42,7 +44,7 @@ function createChatWindow(continueFromURL) {
 		);
 	}
 
-	const menu = Menu.buildFromTemplate([
+	const menuTemplate = [
 		{
 			label: "File",
 			submenu: [
@@ -62,9 +64,7 @@ function createChatWindow(continueFromURL) {
 				{
 					label: "Open DevTools",
 					click: () => contentView.webContents.openDevTools({mode: "detach"}),
-				},
-				{type: "separator"},
-				{role: "quit"},
+				}
 			],
 		},
 		{
@@ -115,7 +115,45 @@ function createChatWindow(continueFromURL) {
 		},
 		{role: "windowMenu"},
 		{role: "help"},
-	]);
+	];
+
+	if (platform.isMac) {
+		menuTemplate.unshift({
+			label: app.name,
+			submenu: [
+				{role: "about"},
+				{type: "separator"},
+				{
+					label: "Settings...",
+					accelerator: "Cmd+,",
+					click: () => {
+						createSettingsWindow();
+					},
+				},
+				{type: "separator"},
+				{role: "services"},
+				{type: "separator"},
+				{role: "hide"},
+				{role: "hideOthers"},
+				{role: "unhide"},
+				{type: "separator"},
+				{role: "quit"},
+			],
+		});
+	} else {
+		menuTemplate.filter(m => m.label === "File")[0].submenu.push(
+			{
+				label: "Settings",
+				click: () => {
+					createSettingsWindow();
+				},
+			},
+			{type: "separator"},
+			{role: "quit"},
+		);
+	}
+
+	const menu = Menu.buildFromTemplate(menuTemplate);
 	Menu.setApplicationMenu(menu);
 
 	if (!platform.isMac) {
@@ -198,7 +236,7 @@ function createChatWindow(continueFromURL) {
 	});
 
 	try {
-		let platformName = "linux";
+		let platformName = "other";
 		if (platform.isMac) platformName = "macos";
 		else if (platform.isWin) platformName = "windows";
 
@@ -210,19 +248,19 @@ function createChatWindow(continueFromURL) {
 		if (fs.existsSync(commonPath)) {
 			cssToInject += fs.readFileSync(commonPath, "utf8") + "\n";
 		} else {
-			console.warn(`No common.css found in ${injectDir}`);
+			console.warn(`⚠️ No common.css found in ${injectDir}`);
 		}
 		if (fs.existsSync(platformPath)) {
 			cssToInject += fs.readFileSync(platformPath, "utf8") + "\n";
 		} else {
-			console.warn(`No ${platformName}.css found in ${injectDir}`);
+			console.warn(`⚠️ No ${platformName}.css found in ${injectDir}`);
 		}
 
 		if (cssToInject.trim().length > 0) {
 			const inject = () => {
 				contentView.webContents.insertCSS(cssToInject)
 					.catch(reason => {
-						console.warn(`Failed to inject CSS: ${reason}`);
+						console.warn(`⚠️ Failed to inject CSS: ${reason}`);
 					});
 			};
 
@@ -256,10 +294,18 @@ function createChatWindow(continueFromURL) {
 		}
 	});
 
+	ipcMain.on("titlebar:open-profile-menu", event => {
+		contentView.webContents.send("chat:open-profile-menu");
+	});
+
 	ipcMain.on("chat:set-profile", (event, avatarURL, name) => {
 		if (titleBarView) {
 			titleBarView.webContents.send("titlebar:set-profile", avatarURL, name);
 		}
+	});
+
+	ipcMain.handle("chat:get-elements", event => {
+		return misc.chatElements;
 	});
 
 	chatWindow.on("close", (event) => {
@@ -275,5 +321,3 @@ function createChatWindow(continueFromURL) {
 
 	return chatWindow;
 }
-
-module.exports = {createChatWindow};

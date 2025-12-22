@@ -1,8 +1,8 @@
-const {BrowserWindow, app, ipcMain, Menu} = require("electron");
-const platform = require("../../platform_detect");
-const {p} = require("../../utils");
+import {BrowserWindow, app, ipcMain} from "electron";
+import * as platform from "../../platform_detect.js";
+import {p} from "../../utils.js";
 
-function createSplashWindow() {
+export function createSplashWindow() {
 	const splashWindow = new BrowserWindow({
 		width: 400,
 		height: 150,
@@ -40,7 +40,7 @@ function createSplashWindow() {
 
 	splashWindow.once("ready-to-show", () => {
 		if (platform.isOther) {
-			splashWindow.webContents.send("splash:opaque-background");
+			splashWindow.webContents.send("splash:request-no-transparency");
 		}
 
 		splashWindow.show();
@@ -54,5 +54,3 @@ function createSplashWindow() {
 
 	return splashWindow;
 }
-
-module.exports = {createSplashWindow};

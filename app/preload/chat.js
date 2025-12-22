@@ -1,67 +1,121 @@
-const { ipcRenderer } = require("electron");
+const {ipcRenderer} = require("electron");
+
+class ElementDetector {
+	/** @type {string} */
+	#rootElementSelector;
+
+	/** @type {?HTMLElement} */
+	#rootElement = null;
+
+	/** @type {?MutationObserver} */
+	#observer = null;
+
+	constructor(selector) {
+		this.#rootElementSelector = selector;
+	}
+
+	/**
+	 * @returns {Promise<void>}
+	 */
+	waitForRootElement() {
+		return new Promise(resolve => {
+			const bodyObserver = new MutationObserver((_, observer) => {
+				this.#rootElement = document.querySelector(this.#rootElementSelector);
+
+				if (this.#rootElement) {
+					observer.disconnect();
+					resolve();
+				}
+			});
+
+			bodyObserver.observe(document.body, { childList: true, subtree: true });
+		});
+	}
+
+	/**
+	 * @template T
+	 * @param finder {() => ?T}
+	 * @returns {Promise<T>}
+	 */
+	detect(finder) {
+		this.#observer?.disconnect();
+		this.#observer = null;
+
+		return new Promise(resolve => {
+			const foundImmediate = finder();
+
+			if (foundImmediate) {
+				resolve(foundImmediate);
+				return;
+			}
+
+			this.#observer = new MutationObserver((_, observer) => {
+				const found = finder();
+
+				if (!found) return;
+
+				observer.disconnect();
+				this.#observer = null;
+				resolve(found);
+			});
+
+			this.#observer.observe(this.#rootElement, { childList: true, subtree: true });
+		});
+	}
+}
+
+/** @type {typeof import("../misc.json").chatElements} */
+let elements = {};
 
 function setProfile(avatarURL, name) {
 	ipcRenderer.send("chat:set-profile", avatarURL, name);
 }
 
-/**
- * Watches for an element to appear in the DOM and then watches for changes inside it.
- * @param {string} selector - The CSS selector of the element to watch
- * @param {(type: "appeared"|"changed", element: Element, mutationRecord: ?MutationRecord) => any} onEvent - Callback containing `(type, element, mutationRecord)`.
- */
-function watchElement(selector, onEvent) {
-	// 1. Check if an element already exists
-	const existingElement = document.querySelector(selector);
-	if (existingElement) {
-		onEvent("appeared", existingElement, null);
-		startObservingChanges(existingElement);
-		return; // Don't need to wait for an appearance
-	}
+async function init() {
+	const detector = new ElementDetector(elements.facebookTopBanner);
 
-	// 2. If not found, watch the document body for its addition
-	const bodyObserver = new MutationObserver((mutations, observer) => {
-		const target = document.body.querySelector(selector);
+	await detector.waitForRootElement();
 
-		if (!target) return;
+	const avatarURL = await detector.detect(() => {
+		const profileMenuButton = document.querySelector(elements.profileButton);
 
-		// Stop watching the body (performance optimization)
-		observer.disconnect();
+		if (!profileMenuButton) return null;
 
-		onEvent("appeared", target, null);
-		startObservingChanges(target);
+		const foundImages = document.body.getElementsByTagName("image");
+
+		if (foundImages.length === 0) return null;
+
+		/* Open the profile menu temporarily */
+		profileMenuButton.click();
+
+		return foundImages[0].getAttribute("xlink:href");
 	});
 
-	// Start watching the body for added nodes
-	bodyObserver.observe(document.body, { childList: true, subtree: true });
+	const profileName = await detector.detect(() => {
+		const profileNameLabel = document.querySelector(elements.profileNameLabel);
 
-	// --- Internal Helper to watch the specific element ---
-	function startObservingChanges(element) {
-		const elementObserver = new MutationObserver((mutations) => {
-			mutations.forEach(mutation => {
-				onEvent("changed", element, mutation);
-			});
-		});
+		if (!profileNameLabel) return null;
 
-		elementObserver.observe(element, {
-			attributes: true,      // Watch for attribute changes (class, style, href, etc.)
-			childList: true,       // Watch for added/removed children
-			subtree: true,         // Watch all descendants (deep watch)
-			characterData: true    // Watch for text content changes
-		});
-	}
+		/* Close the profile menu */
+		document.querySelector(elements.profileButton).click();
+
+		/* Add the tag which makes the profile menu visible normally after our shenanigangs */
+		document.body.setAttribute("data-metagrave-show-profile-menu", "1");
+
+		return profileNameLabel.textContent;
+	});
+
+	setProfile(avatarURL, profileName);
 }
 
+ipcRenderer.on("chat:open-profile-menu", () => {
+	document.querySelector(elements.profileButton).click();
+});
+
 document.addEventListener("DOMContentLoaded", () => {
-	watchElement(
-		`html > body > div:first-of-type > div > div:first-of-type > div > div:nth-of-type(2) > div:nth-of-type(5) > div:first-of-type > span > div > div:first-of-type > div`,
-		(type, element, mutation) => {
-			const foundImages = element.getElementsByTagName("image");
-
-			if (foundImages.length === 0) return;
-
-			const avatarURL = foundImages[0].getAttribute("xlink:href");
-
-			setProfile(avatarURL, "test");
-		}
-	);
+	ipcRenderer.invoke("chat:get-elements")
+		.then(elements_ => {
+			elements = structuredClone(elements_);
+			init();
+		});
 });

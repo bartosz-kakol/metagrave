@@ -1,14 +1,20 @@
-const {app} = require("electron");
-const path = require("path");
+import {app} from "electron";
+import path from "path";
 
 const appPath = app.getAppPath();
 
 /**
+ * Constructs a full path to a given resource that works in both development and production environments.
+ *
+ * **To be used with template strings like this:**
+ * ```js
+ * const fullPath = p`resources/images/image.png`;
+ * ```
  * @param template {string[]}
  * @param args {Array}
  * @returns {string}
  */
-function p(template, ...args) {
+export function p(template, ...args) {
 	let string = template[0] ?? "";
 
 	for (let i = 0; i < args.length; i++) {
@@ -19,5 +25,3 @@ function p(template, ...args) {
 
 	return path.join(appPath, ...pathElements);
 }
-
-module.exports = {p};
