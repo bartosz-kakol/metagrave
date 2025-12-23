@@ -25,3 +25,21 @@ export function p(template, ...args) {
 
 	return path.join(appPath, ...pathElements);
 }
+
+/**
+ * Returns whether the given URL (`url`) starts with at least one of the given URL patterns (`urlPatterns`).
+ * @param urlPatterns {string[]}
+ * @param url {string}
+ * @returns {boolean}
+ */
+export function atLeastOneURLMatches(urlPatterns, url) {
+	return urlPatterns.some(pattern => url.startsWith(pattern));
+}
+
+/**
+ * @param namespace {string}
+ * @returns {(msg: string, ...args: any[]) => void}
+ */
+export function simpleLogger(namespace) {
+	return (msg, ...args) => console.log(`[${namespace}] ${msg}`, ...args);
+}

@@ -2,7 +2,7 @@ import {BrowserWindow, Menu, WebContentsView, ipcMain, shell, app, dialog} from 
 import fs from "fs";
 import path from "path";
 import * as platform from "../../platform_detect.js";
-import {p} from "../../utils.js";
+import {atLeastOneURLMatches, p} from "../../utils.js";
 import {setupTray} from "../tray.js";
 import {setChatWindow} from "../state.js";
 import misc from "../misc.json" with {type: "json"};
@@ -143,7 +143,12 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	});
 
 	const handleNavigate = (event, url) => {
-		if (misc.recognizedMessengerURLs.some(urlPattern => url.startsWith(urlPattern))) {
+		if (
+			atLeastOneURLMatches([
+				misc.specificMediaURL,
+				...misc.recognizedMessengerURLs,
+			], url)
+		) {
 			contentView.webContents.send("chat:chat-url-changed");
 
 			return false;
@@ -255,10 +260,6 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 		if (titleBarView) {
 			titleBarView.webContents.send("titlebar:set-profile", avatarURL, name);
 		}
-	});
-
-	ipcMain.handle("chat:get-elements", event => {
-		return misc.chatElements;
 	});
 
 	chatWindow.on("close", (event) => {

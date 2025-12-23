@@ -64,23 +64,29 @@ class ElementDetector {
 	}
 }
 
-/** @type {typeof import("../misc.json").chatElements} */
-let elements = {};
+/** @type {typeof import("../misc.json")} */
+let misc = {};
 
-function setProfile(avatarURL, name) {
-	ipcRenderer.send("chat:set-profile", avatarURL, name);
-}
+ipcRenderer.on("chat:open-profile-menu", () => {
+	document.querySelector(misc.chatElements.profileButton).click();
+});
 
-async function init() {
-	const detector = new ElementDetector(elements.facebookTopBanner);
+ipcRenderer.on("chat:chat-url-changed", () => {
+	const url = location.href;
 
-	//region profile_detect
-	console.log("[init/profile_detect] Waiting for root element...");
+	const closeMediaButton = document.querySelector(".metagrave-close-media-button");
+	closeMediaButton.style.display = url.startsWith(misc.specificMediaURL) ? null : "none";
+});
+
+async function detectProfile() {
+	const detector = new ElementDetector(misc.chatElements.facebookTopBanner);
+
+	console.log("[init/detect_profile] Waiting for root element...");
 	await detector.waitForRootElement();
 
-	console.log("[init/profile_detect] Waiting for avatar image...");
+	console.log("[init/detect_profile] Waiting for avatar image...");
 	const avatarURL = await detector.detect(() => {
-		const profileMenuButton = document.querySelector(elements.profileButton);
+		const profileMenuButton = document.querySelector(misc.chatElements.profileButton);
 
 		if (!profileMenuButton) return null;
 
@@ -93,40 +99,28 @@ async function init() {
 
 		return foundImages[0].getAttribute("xlink:href");
 	});
-	console.log(`[init/profile_detect] avatarURL = ${avatarURL}`);
+	console.log(`[init/detect_profile] avatarURL = ${avatarURL}`);
 
-	console.log("[init/profile_detect] Waiting for profile name label...");
+	console.log("[init/detect_profile] Waiting for profile name label...");
 	const profileName = await detector.detect(() => {
-		const profileNameLabel = document.querySelector(elements.profileNameLabel);
+		const profileNameLabel = document.querySelector(misc.chatElements.profileNameLabel);
 
 		if (!profileNameLabel) return null;
 
 		/* Close the profile menu */
-		document.querySelector(elements.profileButton).click();
+		document.querySelector(misc.chatElements.profileButton).click();
 
 		/* Add the tag which makes the profile menu visible normally after our shenanigangs */
 		document.body.setAttribute("data-metagrave-show-profile-menu", "1");
 
 		return profileNameLabel.textContent.trim();
 	});
-	console.log(`[init/profile_detect] profileName = ${profileName}`);
-	//endregion
+	console.log(`[init/detect_profile] profileName = ${profileName}`);
 
-	setProfile(avatarURL, profileName);
+	ipcRenderer.send("chat:set-profile", avatarURL, profileName);
 }
 
-ipcRenderer.on("chat:open-profile-menu", () => {
-	document.querySelector(elements.profileButton).click();
-});
-
-ipcRenderer.on("chat:chat-url-changed", () => {
-	const url = location.href;
-
-	const closeMediaButton = document.querySelector(".metagrave-close-media-button");
-	closeMediaButton.style.display = url.startsWith("https://www.facebook.com/messenger_media") ? null : "none";
-});
-
-document.addEventListener("DOMContentLoaded", () => {
+async function onReady() {
 	// Add a replacement button for closing media content in specific circumstances
 	const closeMediaButton = document.createElement("button");
 	closeMediaButton.classList.add("metagrave-close-media-button");
@@ -137,9 +131,11 @@ document.addEventListener("DOMContentLoaded", () => {
 	});
 	document.body.appendChild(closeMediaButton);
 
-	ipcRenderer.invoke("chat:get-elements")
-		.then(elements_ => {
-			elements = structuredClone(elements_);
-			init();
-		});
+	await detectProfile();
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+	misc = await ipcRenderer.invoke("import:misc");
+
+	await onReady();
 });

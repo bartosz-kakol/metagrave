@@ -11,12 +11,14 @@
     "https://www.facebook.com/two_step_verification",
     "https://www.facebook.com/two_factor"
   ],
-  "businessURL": "https://business.facebook.com",
+  "businessURLs": [
+    "https://business.facebook.com"
+  ],
   "businessFallbackRedirectURL": "https://www.facebook.com/messages/t/1",
   "recognizedMessengerURLs": [
     "https://www.facebook.com/messages/t",
-    "https://www.facebook.com/messages/e2ee",
-    "https://www.facebook.com/messenger_media"
+    "https://www.facebook.com/messages/e2ee"
   ],
+  "specificMediaURL": "https://www.facebook.com/messenger_media",
   "logoutURL": "https://www.facebook.com/logout.php"
 }

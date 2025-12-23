@@ -3,6 +3,9 @@ import {getChatWindow} from "../state.js";
 import {createChatWindow} from "./chat.js";
 import getBaseMenuTemplate, {clearAllSessionData} from "../menu.js";
 import misc from "../misc.json" with {type: "json"};
+import {atLeastOneURLMatches, simpleLogger} from "../../utils.js";
+
+const log = simpleLogger("windows/login");
 
 export function createLoginWindow(onLoaded) {
 	const addressBarHeight = 28;
@@ -52,7 +55,14 @@ export function createLoginWindow(onLoaded) {
 	addressBarView.webContents.loadFile("embed/address_bar.html");
 
 	loginWindow.on("closed", () => {
+		log("destroying contentView and addressBarView");
+		contentView.webContents.destroy();
+		addressBarView.webContents.destroy();
+
 		if (app.dontQuitOnCloseLoginWindow) return;
+
+		log("dontQuitOnCloseLoginWindow = false | quitting app")
+
 		app.isQuitting = true;
 		app.quit();
 	});
@@ -84,12 +94,12 @@ export function createLoginWindow(onLoaded) {
 	let currentURL = initialURL;
 
 	contentView.webContents.on("did-start-loading", () => {
-		console.log("did-start-loading: ", currentURL);
+		log(`did-start-loading: ${currentURL}`);
 		updateAddressBar(currentURL, true);
 	});
 
 	contentView.webContents.on("did-stop-loading", () => {
-		console.log("did-stop-loading: ", currentURL);
+		log(`did-stop-loading: ${currentURL}`);
 		updateAddressBar(currentURL, false);
 	});
 
@@ -101,18 +111,23 @@ export function createLoginWindow(onLoaded) {
 		currentURL = url;
 		updateAddressBar(currentURL, contentView.webContents.isLoadingMainFrame());
 
-		if (misc.recognizedMessengerURLs.some(urlPattern => url.startsWith(urlPattern))) {
+		log(`did-navigate: ${currentURL}`);
+
+		if (atLeastOneURLMatches(misc.recognizedMessengerURLs, url)) {
 			app.dontQuitOnCloseLoginWindow = true;
 
 			createChatWindow(url, endedUpOnFacebookBusiness);
-			loginWindow.close();
+
+			if (!loginWindow.isDestroyed()) {
+				loginWindow.close();
+			}
 
 			onLoaded();
 
 			return;
 		}
 
-		if (url.startsWith(misc.businessURL)) {
+		if (atLeastOneURLMatches(misc.businessURLs, url)) {
 			endedUpOnFacebookBusiness = true;
 
 			contentView.webContents.loadURL(misc.businessFallbackRedirectURL);
@@ -120,7 +135,7 @@ export function createLoginWindow(onLoaded) {
 			return;
 		}
 
-		if (!misc.recognizedLoginURLs.some(urlPattern => url.startsWith(urlPattern))) {
+		if (!atLeastOneURLMatches(misc.recognizedLoginURLs, url)) {
 			if (!triedFixingLoginOnce) {
 				contentView.webContents.loadURL(initialURL);
 				triedFixingLoginOnce = true;
