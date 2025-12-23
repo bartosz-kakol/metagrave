@@ -1,6 +1,8 @@
-import {BrowserWindow, Menu, WebContentsView, app, ipcMain} from "electron";
+import {BrowserWindow, Menu, WebContentsView, app, dialog} from "electron";
 import {getChatWindow} from "../state.js";
 import {createChatWindow} from "./chat.js";
+import getBaseMenuTemplate, {clearAllSessionData} from "../menu.js";
+import misc from "../misc.json" with {type: "json"};
 
 export function createLoginWindow(onLoaded) {
 	const addressBarHeight = 28;
@@ -17,30 +19,13 @@ export function createLoginWindow(onLoaded) {
 		show: false,
 	});
 
-	const menu = Menu.buildFromTemplate([
-		{
-			label: "File",
-			submenu: [
-				{role: "quit"}
-			],
+	const contentView = new WebContentsView({
+		webPreferences: {
+			nodeIntegration: false,
+			sandbox: true,
 		},
-		{
-			label: "Edit",
-			submenu: [
-				{role: "undo"},
-				{role: "redo"},
-				{type: "separator"},
-				{role: "cut"},
-				{role: "copy"},
-				{role: "paste"},
-				{role: "delete"},
-				{type: "separator"},
-				{role: "selectAll"},
-			],
-		},
-		{role: "help"},
-	]);
-	Menu.setApplicationMenu(menu);
+	});
+	loginWindow.contentView.addChildView(contentView);
 
 	const addressBarView = new WebContentsView({
 		webPreferences: {
@@ -50,13 +35,11 @@ export function createLoginWindow(onLoaded) {
 	});
 	loginWindow.contentView.addChildView(addressBarView);
 
-	const contentView = new WebContentsView({
-		webPreferences: {
-			nodeIntegration: false,
-			sandbox: true,
-		},
+	const menuTemplate = getBaseMenuTemplate({
+		contentView,
 	});
-	loginWindow.contentView.addChildView(contentView);
+	const menu = Menu.buildFromTemplate(menuTemplate);
+	Menu.setApplicationMenu(menu);
 
 	const applyLayout = () => {
 		const [w, h] = loginWindow.getContentSize();
@@ -89,8 +72,7 @@ export function createLoginWindow(onLoaded) {
 		ctx.popup({window: getChatWindow()});
 	});
 
-	const initialURL = "https://www.facebook.com/messages";
-	contentView.webContents.loadURL(initialURL);
+	const initialURL = misc.initialURL;
 
 	const updateAddressBar = (url, loading) => {
 		try {
@@ -111,18 +93,83 @@ export function createLoginWindow(onLoaded) {
 		updateAddressBar(currentURL, false);
 	});
 
+	let triedFixingLoginOnce = false;
+	let loginBrokenWarningShown = false;
+	let endedUpOnFacebookBusiness = false;
+
 	contentView.webContents.on("did-navigate", (_e, url) => {
 		currentURL = url;
 		updateAddressBar(currentURL, contentView.webContents.isLoadingMainFrame());
 
-		if (url.startsWith("https://www.facebook.com/messages/t") || url.startsWith("https://www.facebook.com/messages/e2ee")) {
+		if (misc.recognizedMessengerURLs.some(urlPattern => url.startsWith(urlPattern))) {
 			app.dontQuitOnCloseLoginWindow = true;
-			createChatWindow(url);
+
+			createChatWindow(url, endedUpOnFacebookBusiness);
 			loginWindow.close();
-		} else {
-			loginWindow.show();
+
+			onLoaded();
+
+			return;
 		}
 
+		if (url.startsWith(misc.businessURL)) {
+			endedUpOnFacebookBusiness = true;
+
+			contentView.webContents.loadURL(misc.businessFallbackRedirectURL);
+
+			return;
+		}
+
+		if (!misc.recognizedLoginURLs.some(urlPattern => url.startsWith(urlPattern))) {
+			if (!triedFixingLoginOnce) {
+				contentView.webContents.loadURL(initialURL);
+				triedFixingLoginOnce = true;
+
+				return;
+			}
+
+			if (!loginBrokenWarningShown) {
+				dialog.showMessageBox(loginWindow, {
+					type: "warning",
+					textWidth: 250,
+					title: "Failed to log in",
+					message:
+						"There seems to be a problem with loading the login form. This could be due to a recent change in " +
+						"Facebook's login system, but it could also be the fault of a bad session." +
+						"\n\n" +
+						"If you think this message is shown in error, choose \"Ignore\". If you want the app to try " +
+						"loading the login form again, press \"Retry\"." +
+						"\n\n" +
+						"You can also try clearing your session. This WILL log you out of your account, but should fix the " +
+						"issue completely.",
+					buttons: ["Ignore", "Retry", "Clear session and try again"],
+					cancelId: 0,
+					defaultId: 0
+				})
+					.then(({response}) => {
+						switch (response) {
+							case 1:
+								return;
+							case 2:
+								contentView.webContents.loadURL(initialURL);
+								break
+							case 3:
+								clearAllSessionData()
+									.then(() => {
+										app.relaunch();
+										app.exit(0);
+									})
+									.catch(e => {
+										console.error(e);
+									});
+								break;
+						}
+					});
+				loginBrokenWarningShown = true;
+			}
+		}
+
+		loginWindow.show();
 		onLoaded();
 	});
 
@@ -130,6 +177,8 @@ export function createLoginWindow(onLoaded) {
 		currentURL = url;
 		updateAddressBar(currentURL, contentView.webContents.isLoadingMainFrame());
 	});
+
+	contentView.webContents.loadURL(initialURL);
 
 	return loginWindow;
 }

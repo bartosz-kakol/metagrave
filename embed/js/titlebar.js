@@ -36,6 +36,10 @@ ipcRenderer.on("titlebar:set-profile", (_e, avatarURL, name) => {
 	profileNameElement.textContent = name;
 });
 
+ipcRenderer.on("titlebar:chat-url-changed", (_e, url) => {
+
+});
+
 document.addEventListener("DOMContentLoaded", () => {
 	document.body.setAttribute("data-platform", platformString);
 
@@ -48,5 +52,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	document.getElementById("profile").addEventListener("click", () => {
 		ipcRenderer.send("titlebar:open-profile-menu");
+	});
+
+	document.getElementById("close-media").addEventListener("click", () => {
+		ipcRenderer.send("titlebar:close-media");
 	});
 });
