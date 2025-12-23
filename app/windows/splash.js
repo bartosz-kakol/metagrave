@@ -1,7 +1,8 @@
-const {BrowserWindow, app} = require("electron");
-const platform = require("../../platform_detect");
+import {BrowserWindow} from "electron";
+import * as platform from "../../platform_detect.js";
+import {p} from "../../utils.js";
 
-function createSplashWindow() {
+export function createSplashWindow() {
 	const splashWindow = new BrowserWindow({
 		width: 400,
 		height: 150,
@@ -13,12 +14,13 @@ function createSplashWindow() {
 		center: true,
 		show: false,
 		skipTaskbar: true,
-		backgroundColor: !platform.isOther ? "#00000000" : "#1A1A1A",
+		backgroundColor: "#00000000",
 		vibrancy: platform.isMac ? "under-window" : undefined,
 		visualEffectState: platform.isMac ? "active" : undefined,
 		webPreferences: {
 			nodeIntegration: false,
 			sandbox: true,
+			preload: p`app/preload/splash.js`,
 		},
 	});
 
@@ -33,6 +35,10 @@ function createSplashWindow() {
 	}
 
 	splashWindow.once("ready-to-show", () => {
+		if (platform.isOther) {
+			splashWindow.webContents.send("splash:request-no-transparency");
+		}
+
 		splashWindow.show();
 	});
 
@@ -44,5 +50,3 @@ function createSplashWindow() {
 
 	return splashWindow;
 }
-
-module.exports = {createSplashWindow};

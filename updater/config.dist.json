@@ -1,0 +1,12 @@
+{
+  "channels": {
+    "stable": {
+      "friendlyName": "Stable",
+      "endpoint": "The URL for getting the newest version metadata for the stable channel."
+    },
+    "nightly": {
+      "friendlyName": "Nightly",
+      "endpoint": "The URL for getting the newest version metadata for the nightly channel."
+    }
+  }
+}

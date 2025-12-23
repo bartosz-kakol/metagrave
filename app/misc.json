@@ -1,0 +1,31 @@
+{
+  "chatElements": {
+    "facebookTopBanner": "div[role=\"banner\"]",
+    "profileButton": "html > body > div:first-of-type > div > div:first-of-type > div > div:nth-of-type(2) > div:nth-of-type(5) > div:first-of-type > span > div > div:first-of-type > div",
+    "profileNameLabel": "a[href=\"/me/\"]"
+  },
+  "initialURL": "https://www.facebook.com/messages",
+  "recognizedLoginURLs": [
+    "https://www.facebook.com/login.php",
+    "https://www.facebook.com/index.php",
+    "https://www.facebook.com/two_step_verification",
+    "https://www.facebook.com/two_factor"
+  ],
+  "businessURLs": [
+    "https://business.facebook.com"
+  ],
+  "businessFallbackRedirectURL": "https://www.facebook.com/messages/t/1",
+  "recognizedMessengerURLs": [
+    "https://www.facebook.com/messages/t",
+    "https://www.facebook.com/messages/e2ee"
+  ],
+  "specificMediaURL": "https://www.facebook.com/messenger_media",
+  "logoutURL": "https://www.facebook.com/logout.php",
+  "repository": {
+    "url": "https://github.com/bartosz-kakol/metagrave",
+    "maintainer": {
+      "name": "bartosz-kakol",
+      "url": "https://github.com/bartosz-kakol"
+    }
+  }
+}

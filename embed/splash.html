@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline' 'self';">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="css/fonts.css">
     <link rel="stylesheet" href="css/splash.css">
@@ -39,12 +40,16 @@
                         </stop>
                     </linearGradient>
                 </defs>
-                <text x="50%" y="58%" text-anchor="middle" font-size="160" font-weight="800" font-family="Zen Dots, system-ui, -apple-system, Segoe UI, sans-serif" fill="url(#g)" letter-spacing="1">
+                <text x="50%" y="58%" text-anchor="middle" font-size="160" font-weight="800" font-family="Zen Dots MetagraveEmbedded, system-ui, -apple-system, Segoe UI, sans-serif" fill="url(#g)" letter-spacing="1">
                     Metagrave
                 </text>
             </svg>
         </div>
         <div class="foot">Starting up...</div>
     </div>
+
+    <div id="version"></div>
+
+    <script src="js/splash.js"></script>
 </body>
 </html>

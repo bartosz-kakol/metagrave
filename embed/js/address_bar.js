@@ -1,4 +1,4 @@
-const { ipcRenderer } = require("electron");
+const {ipcRenderer} = require("electron");
 const spinner = document.getElementById("spinner");
 const urlEl = document.getElementById("url");
 

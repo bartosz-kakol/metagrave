@@ -1,27 +1,44 @@
-const {BrowserWindow, Menu, WebContentsView, session, ipcMain, shell, app} = require("electron");
-const fs = require("fs");
-const path = require("path");
-const platform = require("../../platform_detect");
-const {p} = require("../../utils");
-const {setupTray} = require("../tray");
-const {setChatWindow} = require("../state");
+import {BrowserWindow, Menu, WebContentsView, ipcMain, shell, app, dialog} from "electron";
+import fs from "fs";
+import path from "path";
+import * as platform from "../../platform_detect.js";
+import {atLeastOneURLMatches, p, simpleLogger} from "../../utils.js";
+import {setupTray} from "../tray.js";
+import {getStore, setChatWindow} from "../state.js";
+import misc from "../misc.json" with {type: "json"};
+import getBaseMenuTemplate, {clearAllSessionData} from "../menu.js";
 
-function createChatWindow(continueFromURL) {
+const log = simpleLogger("windows/chat");
+
+export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	const titleBarHeight = 32;
 
+	const store = getStore();
+
 	const chatWindow = new BrowserWindow({
+		minWidth: 800,
 		width: 1280,
+		minHeight: 600,
 		height: 780,
 		title: "Metagrave",
-		frame: !platform.isWin, // Windows: frameless; macOS: use hidden title bar with native traffic lights
-		titleBarStyle: platform.isMac ? "hidden" : undefined,
-		trafficLightPosition: platform.isMac ? {x: 12, y: 10} : undefined, // custom location for macOS traffic lights
+		frame: store.get("useSystemWindowFrame"), // Windows: frameless; macOS: use hidden title bar with native traffic lights
+		titleBarStyle: (platform.isMac && !store.get("useSystemWindowFrame")) ? "hidden" : undefined,
+		trafficLightPosition: (platform.isMac && !store.get("useSystemWindowFrame")) ? {x: 12, y: 10} : undefined, // custom location for macOS traffic lights
 		autoHideMenuBar: true,
 		backgroundColor: "#1e1e1e",
 		webPreferences: {
 			nodeIntegration: false,
 		},
 	});
+
+	const contentView = new WebContentsView({
+		webPreferences: {
+			nodeIntegration: false,
+			sandbox: true,
+			preload: p`app/preload/chat.js`,
+		},
+	});
+	chatWindow.contentView.addChildView(contentView);
 
 	setChatWindow(chatWindow);
 
@@ -38,83 +55,20 @@ function createChatWindow(continueFromURL) {
 		);
 	}
 
-	const menu = Menu.buildFromTemplate([
-		{
-			label: "File",
-			submenu: [
-				{
-					label: "Clear data and restart",
-					click: () => {
-						session.defaultSession.clearStorageData();
-						app.relaunch();
-						app.exit(0);
-					},
-				},
-				{
-					label: "Open DevTools",
-					click: () => contentView.webContents.openDevTools({mode: "detach"}),
-				},
-				{type: "separator"},
-				{role: "quit"},
-			],
-		},
-		{
-			label: "Edit",
-			submenu: [
-				{role: "undo"},
-				{role: "redo"},
-				{type: "separator"},
-				{role: "cut"},
-				{role: "copy"},
-				{role: "paste"},
-				{role: "delete"},
-				{type: "separator"},
-				{role: "selectAll"},
-			],
-		},
-		{
-			label: "View",
-			submenu: [
-				{
-					label: "Reload",
-					accelerator: "CmdOrCtrl+R",
-					click: () => contentView.webContents.reload(),
-				},
-				{type: "separator"},
-				{
-					label: "Reset Zoom",
-					accelerator: "CmdOrCtrl+0",
-					click: () => contentView.webContents.setZoomLevel(0),
-				},
-				{
-					label: "Zoom In",
-					accelerator: "CmdOrCtrl+Plus",
-					click: () => {
-						const currentZoom = contentView.webContents.getZoomLevel();
-						contentView.webContents.setZoomLevel(currentZoom + 0.5);
-					},
-				},
-				{
-					label: "Zoom Out",
-					accelerator: "CmdOrCtrl+-",
-					click: () => {
-						const currentZoom = contentView.webContents.getZoomLevel();
-						contentView.webContents.setZoomLevel(currentZoom - 0.5);
-					},
-				},
-			],
-		},
-		{role: "windowMenu"},
-	]);
+	const menuTemplate = getBaseMenuTemplate({
+		contentView
+	});
+	const menu = Menu.buildFromTemplate(menuTemplate);
 	Menu.setApplicationMenu(menu);
 
 	if (!platform.isMac) {
 		setupTray();
 	}
 
+	/** @type {?ElectronWebContentsView} */
 	let titleBarView = null;
 	let topOffset = 0;
-	if (platform.isWin) {
+	if (!store.get("useSystemWindowFrame")) {
 		titleBarView = new WebContentsView({
 			webPreferences: {
 				nodeIntegration: true,
@@ -122,7 +76,7 @@ function createChatWindow(continueFromURL) {
 			},
 		});
 		chatWindow.contentView.addChildView(titleBarView);
-		topOffset = 32;
+		topOffset = titleBarHeight;
 	}
 
 	const applyLayout = () => {
@@ -134,37 +88,45 @@ function createChatWindow(continueFromURL) {
 	};
 
 	if (titleBarView) {
-		titleBarView.webContents.loadFile("embed/windows_titlebar.html");
+		titleBarView.webContents.loadFile("embed/titlebar.html");
 	}
-
-	const contentView = new WebContentsView({
-		webPreferences: {
-			nodeIntegration: false,
-			sandbox: true,
-		},
-	});
-	chatWindow.contentView.addChildView(contentView);
 
 	contentView.webContents.on("context-menu", (event, params) => {
 		const template = [];
 
-		const isImage = params.mediaType === "image" && !!params.srcURL;
-		if (isImage) {
+		if (params.mediaType === "image" && !!params.srcURL) {
 			template.push(
 				{
-					label: "Copy image",
+					label: "📋 Copy image to clipboard",
 					click: () => {
 						try {
 							contentView.webContents.copyImageAt(params.x, params.y);
-						} catch (_) {
+						} catch (e) {
+							console.error(e);
 						}
 					},
 				},
 				{
-					label: "Open image in browser window",
+					label: "💾 Save image",
 					enabled: !!params.srcURL,
 					click: () => {
-						if (params.srcURL) shell.openExternal(params.srcURL);
+						if (!params.srcURL) return;
+
+						try {
+							contentView.webContents.downloadURL(params.srcURL);
+						} catch (e) {
+							console.error(e);
+						}
+					},
+				},
+				{
+					label: "🌎 Open image in Browser",
+					enabled: !!params.srcURL,
+					click: () => {
+						if (!params.srcURL) return;
+
+						shell.openExternal(params.srcURL)
+							.catch(e => console.error(e));
 					},
 				},
 				{type: "separator"}
@@ -186,8 +148,59 @@ function createChatWindow(continueFromURL) {
 		ctx.popup({window: chatWindow});
 	});
 
+	const handleNavigate = (event, url) => {
+		if (
+			atLeastOneURLMatches([
+				misc.specificMediaURL,
+				...misc.recognizedMessengerURLs,
+			], url)
+		) {
+			contentView.webContents.send("chat:chat-url-changed");
+
+			return false;
+		}
+
+		event.preventDefault();
+		log(`opening externally: ${url}`);
+		shell.openExternal(url);
+
+		return true;
+	}
+
+	contentView.webContents.on("will-navigate", (event, url) => {
+		if (url.startsWith(misc.logoutURL)) {
+			clearAllSessionData()
+				.then(() => {
+					app.relaunch();
+					app.exit(0);
+				})
+				.catch(e => {
+					console.error(e);
+				});
+
+			return;
+		}
+
+		handleNavigate(event, url);
+	});
+	contentView.webContents.on("did-navigate-in-page", (event, url) => {
+		if (handleNavigate(event, url)) {
+			contentView.webContents.navigationHistory.goBack();
+		}
+	});
+
+	contentView.webContents.setWindowOpenHandler(({url}) => {
+		if (url.startsWith("http:") || url.startsWith("https:")) {
+			shell.openExternal(url);
+
+			return {action: "deny"};
+		}
+
+		return {action: "allow"};
+	});
+
 	try {
-		let platformName = "linux";
+		let platformName = "other";
 		if (platform.isMac) platformName = "macos";
 		else if (platform.isWin) platformName = "windows";
 
@@ -199,20 +212,24 @@ function createChatWindow(continueFromURL) {
 		if (fs.existsSync(commonPath)) {
 			cssToInject += fs.readFileSync(commonPath, "utf8") + "\n";
 		} else {
-			console.warn(`No common.css found in ${injectDir}`);
+			console.warn(`⚠️ No common.css found in ${injectDir}`);
 		}
 		if (fs.existsSync(platformPath)) {
 			cssToInject += fs.readFileSync(platformPath, "utf8") + "\n";
 		} else {
-			console.warn(`No ${platformName}.css found in ${injectDir}`);
+			console.warn(`⚠️ No ${platformName}.css found in ${injectDir}`);
 		}
 
 		if (cssToInject.trim().length > 0) {
 			const inject = () => {
-				contentView.webContents.insertCSS(cssToInject).catch(() => {
-				});
+				contentView.webContents.insertCSS(cssToInject)
+					.catch(reason => {
+						console.warn(`⚠️ Failed to inject CSS: ${reason}`);
+					});
 			};
-			contentView.webContents.on("did-finish-load", inject);
+
+			contentView.webContents.on("did-navigate", inject);
+
 			if (contentView.webContents.isLoadingMainFrame() === false) {
 				inject();
 			}
@@ -224,24 +241,32 @@ function createChatWindow(continueFromURL) {
 	applyLayout();
 	chatWindow.on("resize", applyLayout);
 
-	if (platform.isWin) {
-		ipcMain.removeAllListeners("window-control");
-		ipcMain.on("window-control", (event, action) => {
-			if (!chatWindow) return;
-			switch (action) {
-				case "minimize":
-					chatWindow.minimize();
-					break;
-				case "maximize":
-					if (chatWindow.isMaximized()) chatWindow.unmaximize();
-					else chatWindow.maximize();
-					break;
-				case "close":
-					chatWindow.close();
-					break;
-			}
-		});
-	}
+	ipcMain.removeAllListeners("titlebar:window-control");
+	ipcMain.on("titlebar:window-control", (event, action) => {
+		if (!chatWindow) return;
+		switch (action) {
+			case "minimize":
+				chatWindow.minimize();
+				break;
+			case "maximize":
+				if (chatWindow.isMaximized()) chatWindow.unmaximize();
+				else chatWindow.maximize();
+				break;
+			case "close":
+				chatWindow.close();
+				break;
+		}
+	});
+
+	ipcMain.on("titlebar:open-profile-menu", event => {
+		contentView.webContents.send("chat:open-profile-menu");
+	});
+
+	ipcMain.on("chat:set-profile", (event, avatarURL, name) => {
+		if (titleBarView) {
+			titleBarView.webContents.send("titlebar:set-profile", avatarURL, name);
+		}
+	});
 
 	chatWindow.on("close", (event) => {
 		event.preventDefault();
@@ -252,9 +277,28 @@ function createChatWindow(continueFromURL) {
 		setChatWindow(null);
 	});
 
-	contentView.webContents.loadURL(continueFromURL);
+	contentView.webContents.loadURL(continueFromURL)
+		.then(() => {
+			if (endedUpOnFacebookBusiness) {
+				dialog.showMessageBox(chatWindow, {
+					type: "info",
+					textWidth: 250,
+					title: "Facebook Business does not support the classic Messenger interface",
+					message:
+						"It seems that Facebook tried to log you onto a Facebook Page profile connected to your account.",
+					detail:
+						"This may have happened because you switched to a Facebook Page profile and then closed the app. " +
+						"\n\n" +
+						"Since a Facebook Page profile is not supposed to be used with the classic Messenger interface, " +
+						"the app has redirected you here, where you can switch back to your personal profile." +
+						"\n\n" +
+						"You can switch profiles using the button at the top right of the window.",
+					buttons: ["Close"],
+					cancelId: 0,
+					defaultId: 0
+				});
+			}
+		})
 
 	return chatWindow;
 }
-
-module.exports = {createChatWindow};

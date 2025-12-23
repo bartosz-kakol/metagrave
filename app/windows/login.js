@@ -1,8 +1,13 @@
-const {BrowserWindow, Menu, WebContentsView, app, ipcMain} = require("electron");
-const {getChatWindow} = require("../state");
-const {createChatWindow} = require("./chat");
+import {BrowserWindow, Menu, WebContentsView, app, dialog} from "electron";
+import {getChatWindow} from "../state.js";
+import {createChatWindow} from "./chat.js";
+import getBaseMenuTemplate, {clearAllSessionData} from "../menu.js";
+import misc from "../misc.json" with {type: "json"};
+import {atLeastOneURLMatches, simpleLogger} from "../../utils.js";
 
-function createLoginWindow(onLoaded) {
+const log = simpleLogger("windows/login");
+
+export function createLoginWindow(onLoaded) {
 	const addressBarHeight = 28;
 
 	const loginWindow = new BrowserWindow({
@@ -10,33 +15,20 @@ function createLoginWindow(onLoaded) {
 		minWidth: 800,
 		height: 600,
 		minHeight: 600,
+		title: "Metagrave - Log in to Messenger",
 		webPreferences: {
 			nodeIntegration: false,
 		},
 		show: false,
 	});
 
-	const menu = Menu.buildFromTemplate([
-		{
-			label: "File",
-			submenu: [{role: "quit"}],
+	const contentView = new WebContentsView({
+		webPreferences: {
+			nodeIntegration: false,
+			sandbox: true,
 		},
-		{
-			label: "Edit",
-			submenu: [
-				{role: "undo"},
-				{role: "redo"},
-				{type: "separator"},
-				{role: "cut"},
-				{role: "copy"},
-				{role: "paste"},
-				{role: "delete"},
-				{type: "separator"},
-				{role: "selectAll"},
-			],
-		},
-	]);
-	Menu.setApplicationMenu(menu);
+	});
+	loginWindow.contentView.addChildView(contentView);
 
 	const addressBarView = new WebContentsView({
 		webPreferences: {
@@ -46,13 +38,11 @@ function createLoginWindow(onLoaded) {
 	});
 	loginWindow.contentView.addChildView(addressBarView);
 
-	const contentView = new WebContentsView({
-		webPreferences: {
-			nodeIntegration: false,
-			sandbox: true,
-		},
+	const menuTemplate = getBaseMenuTemplate({
+		contentView,
 	});
-	loginWindow.contentView.addChildView(contentView);
+	const menu = Menu.buildFromTemplate(menuTemplate);
+	Menu.setApplicationMenu(menu);
 
 	const applyLayout = () => {
 		const [w, h] = loginWindow.getContentSize();
@@ -65,7 +55,14 @@ function createLoginWindow(onLoaded) {
 	addressBarView.webContents.loadFile("embed/address_bar.html");
 
 	loginWindow.on("closed", () => {
+		log("destroying contentView and addressBarView");
+		contentView.webContents.destroy();
+		addressBarView.webContents.destroy();
+
 		if (app.dontQuitOnCloseLoginWindow) return;
+
+		log("dontQuitOnCloseLoginWindow = false | quitting app")
+
 		app.isQuitting = true;
 		app.quit();
 	});
@@ -85,8 +82,7 @@ function createLoginWindow(onLoaded) {
 		ctx.popup({window: getChatWindow()});
 	});
 
-	const initialURL = "https://www.messenger.com";
-	contentView.webContents.loadURL(initialURL);
+	const initialURL = misc.initialURL;
 
 	const updateAddressBar = (url, loading) => {
 		try {
@@ -98,27 +94,99 @@ function createLoginWindow(onLoaded) {
 	let currentURL = initialURL;
 
 	contentView.webContents.on("did-start-loading", () => {
-		console.log("did-start-loading: ", currentURL);
+		log(`did-start-loading: ${currentURL}`);
 		updateAddressBar(currentURL, true);
 	});
 
 	contentView.webContents.on("did-stop-loading", () => {
-		console.log("did-stop-loading: ", currentURL);
+		log(`did-stop-loading: ${currentURL}`);
 		updateAddressBar(currentURL, false);
 	});
+
+	let triedFixingLoginOnce = false;
+	let loginBrokenWarningShown = false;
+	let endedUpOnFacebookBusiness = false;
 
 	contentView.webContents.on("did-navigate", (_e, url) => {
 		currentURL = url;
 		updateAddressBar(currentURL, contentView.webContents.isLoadingMainFrame());
 
-		if (url.startsWith("https://www.messenger.com/t") || url.startsWith("https://www.messenger.com/e2ee")) {
+		log(`did-navigate: ${currentURL}`);
+
+		if (atLeastOneURLMatches(misc.recognizedMessengerURLs, url)) {
 			app.dontQuitOnCloseLoginWindow = true;
-			createChatWindow(url);
-			loginWindow.close();
-		} else {
-			loginWindow.show();
+
+			createChatWindow(url, endedUpOnFacebookBusiness);
+
+			if (!loginWindow.isDestroyed()) {
+				loginWindow.close();
+			}
+
+			onLoaded();
+
+			return;
 		}
 
+		if (atLeastOneURLMatches(misc.businessURLs, url)) {
+			endedUpOnFacebookBusiness = true;
+
+			contentView.webContents.loadURL(misc.businessFallbackRedirectURL);
+
+			return;
+		}
+
+		if (!atLeastOneURLMatches(misc.recognizedLoginURLs, url)) {
+			if (!triedFixingLoginOnce) {
+				contentView.webContents.loadURL(initialURL);
+				triedFixingLoginOnce = true;
+
+				return;
+			}
+
+			if (!loginBrokenWarningShown) {
+				dialog.showMessageBox(loginWindow, {
+					type: "warning",
+					textWidth: 250,
+					title: "Failed to log in",
+					message:
+						"There seems to have been a problem with loading the login form.",
+					detail:
+						"This could be due to a recent change in Facebook's login system, but it could also be the fault " +
+						"of a bad session." +
+						"\n\n" +
+						"If you think this message is shown in error, choose \"Ignore\". If you want the app to try " +
+						"loading the login form again, press \"Retry\"." +
+						"\n\n" +
+						"You can also try clearing your session. This WILL LOG YOU OUT of your account, but should fix the " +
+						"issue completely in most cases.",
+					buttons: ["Ignore", "Retry", "Clear session and try again"],
+					cancelId: 0,
+					defaultId: 0
+				})
+					.then(({response}) => {
+						switch (response) {
+							case 1:
+								return;
+							case 2:
+								contentView.webContents.loadURL(initialURL);
+								break
+							case 3:
+								clearAllSessionData()
+									.then(() => {
+										app.relaunch();
+										app.exit(0);
+									})
+									.catch(e => {
+										console.error(e);
+									});
+								break;
+						}
+					});
+				loginBrokenWarningShown = true;
+			}
+		}
+
+		loginWindow.show();
 		onLoaded();
 	});
 
@@ -127,7 +195,7 @@ function createLoginWindow(onLoaded) {
 		updateAddressBar(currentURL, contentView.webContents.isLoadingMainFrame());
 	});
 
+	contentView.webContents.loadURL(initialURL);
+
 	return loginWindow;
 }
-
-module.exports = {createLoginWindow};
