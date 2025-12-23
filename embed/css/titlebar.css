@@ -13,8 +13,10 @@ body {
     align-items: center;
     padding: 0 0 0 8px;
     box-sizing: border-box;
-    font-family: sans-serif;
+    font-family: -apple-system, system-ui, sans-serif;
     gap: 4px;
+
+    --bottom-border-color: #2F3233;
 
     &::after {
         position: absolute;
@@ -23,7 +25,7 @@ body {
         width: 100%;
         height: 1px;
         content: "";
-        background: #2F3233;
+        background: var(--bottom-border-color);
     }
 }
 
@@ -32,9 +34,7 @@ body {
         background: #FFF;
         color: #333;
 
-        &::after {
-            background: #E5E5E5;
-        }
+        --bottom-border-color: #E5E5E5;
     }
 }
 
@@ -106,7 +106,7 @@ body[data-platform="other"]     .region.platform-other {
     transition: background 0.1s ease-in-out;
     display: flex;
     align-items: center;
-    font-size: 14px;
+    font-size: 15px;
     gap: 4px;
 
     &:hover {

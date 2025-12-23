@@ -149,14 +149,16 @@ export function createLoginWindow(onLoaded) {
 					textWidth: 250,
 					title: "Failed to log in",
 					message:
-						"There seems to be a problem with loading the login form. This could be due to a recent change in " +
-						"Facebook's login system, but it could also be the fault of a bad session." +
+						"There seems to have been a problem with loading the login form.",
+					detail:
+						"This could be due to a recent change in Facebook's login system, but it could also be the fault " +
+						"of a bad session." +
 						"\n\n" +
 						"If you think this message is shown in error, choose \"Ignore\". If you want the app to try " +
 						"loading the login form again, press \"Retry\"." +
 						"\n\n" +
-						"You can also try clearing your session. This WILL log you out of your account, but should fix the " +
-						"issue completely.",
+						"You can also try clearing your session. This WILL LOG YOU OUT of your account, but should fix the " +
+						"issue completely in most cases.",
 					buttons: ["Ignore", "Retry", "Clear session and try again"],
 					cancelId: 0,
 					defaultId: 0

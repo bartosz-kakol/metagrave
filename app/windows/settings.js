@@ -1,5 +1,8 @@
-import {BrowserWindow, ipcMain} from "electron";
-import {getSettingsWindow, setSettingsWindow, getStore} from "../state.js";
+import {app, BrowserWindow, ipcMain, dialog} from "electron";
+import {getSettingsWindow, setSettingsWindow, getStore, getChatWindow} from "../state.js";
+import {simpleLogger} from "../../utils.js";
+
+const log = simpleLogger("windows/settings");
 
 export function createSettingsWindow() {
 	let settingsWindow = getSettingsWindow();
@@ -11,12 +14,18 @@ export function createSettingsWindow() {
 	}
 
 	settingsWindow = new BrowserWindow({
-		width: 800,
-		height: 600,
+		minWidth: 800,
+		width: 1000,
+		minHeight: 600,
+		height: 700,
+		center: true,
+		modal: true,
+		parent: getChatWindow(),
+		maximizable: false,
 		title: "Settings",
 		autoHideMenuBar: true,
 		resizable: true,
-		backgroundColor: "#1e1e1e",
+		backgroundColor: "#2F3233",
 		webPreferences: {
 			nodeIntegration: true,
 			contextIsolation: false,
@@ -34,14 +43,46 @@ export function createSettingsWindow() {
 	return settingsWindow;
 }
 
-ipcMain.on("settings:open", () => {
-	createSettingsWindow();
-});
-
-ipcMain.on("settings:changed", (event, key, value) => {
-	console.log(`Setting changed: ${key} = ${value}`);
+ipcMain.on("settings:set", (event, key, value) => {
+	log(`Setting changed: ${key} = ${value}`);
 
 	const store = getStore();
 
 	store.set(key, value);
+});
+
+ipcMain.handle("settings:get", (event, key) => {
+	const store = getStore();
+
+	return store.get(key);
+});
+
+ipcMain.on("settings:reset", () => {
+	const store = getStore();
+
+	store.clear();
+	app.relaunch();
+	app.exit();
+});
+
+ipcMain.on("settings:edit-file", () => {
+	const store = getStore();
+	const settingsWindow = getSettingsWindow();
+
+	if (!settingsWindow) return;
+
+	store.openInEditor()
+		.catch(e => {
+			dialog.showMessageBox(settingsWindow, {
+				type: "error",
+				textWidth: 250,
+				title: "Failed to open settings file",
+				message: `Failed to open settings file`,
+				detail: e.message,
+			});
+		});
+})
+
+ipcMain.on("settings:open", () => {
+	createSettingsWindow();
 });

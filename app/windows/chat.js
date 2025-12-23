@@ -2,17 +2,21 @@ import {BrowserWindow, Menu, WebContentsView, ipcMain, shell, app, dialog} from 
 import fs from "fs";
 import path from "path";
 import * as platform from "../../platform_detect.js";
-import {atLeastOneURLMatches, p} from "../../utils.js";
+import {atLeastOneURLMatches, p, simpleLogger} from "../../utils.js";
 import {setupTray} from "../tray.js";
 import {setChatWindow} from "../state.js";
 import misc from "../misc.json" with {type: "json"};
 import getBaseMenuTemplate, {clearAllSessionData} from "../menu.js";
 
+const log = simpleLogger("windows/chat")
+
 export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	const titleBarHeight = 32;
 
 	const chatWindow = new BrowserWindow({
+		minWidth: 800,
 		width: 1280,
+		minHeight: 600,
 		height: 780,
 		title: "Metagrave",
 		frame: !platform.isWin, // Windows: frameless; macOS: use hidden title bar with native traffic lights
@@ -155,7 +159,7 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 		}
 
 		event.preventDefault();
-		console.log(`opening externally: ${url}`)
+		log(`opening externally: ${url}`);
 		shell.openExternal(url);
 
 		return true;
@@ -279,13 +283,14 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 					textWidth: 250,
 					title: "Facebook Business does not support the classic Messenger interface",
 					message:
-						"It seems that Facebook tried to log you onto a Facebook Page profile connected to your account." +
-						"\n\n" +
+						"It seems that Facebook tried to log you onto a Facebook Page profile connected to your account.",
+					detail:
 						"This may have happened because you switched to a Facebook Page profile and then closed the app. " +
 						"\n\n" +
 						"Since a Facebook Page profile is not supposed to be used with the classic Messenger interface, " +
-						"the app has redirected you here, where you can switch back to your personal profile.",
-					detail: "You can switch profiles using the button at the top right of the window.",
+						"the app has redirected you here, where you can switch back to your personal profile." +
+						"\n\n" +
+						"You can switch profiles using the button at the top right of the window.",
 					buttons: ["Close"],
 					cancelId: 0,
 					defaultId: 0
