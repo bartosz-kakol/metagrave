@@ -1,6 +1,9 @@
 const {ipcRenderer} = require("electron");
 
-document.addEventListener("DOMContentLoaded", () => {
+/** @type {typeof import("../../app/misc.json")} */
+let misc = {};
+
+async function onReady() {
     const sidebarItems = document.querySelectorAll(".sidebar-item[data-tab]");
     const tabPanes = document.querySelectorAll(".tab-pane");
     const resetBtn = document.getElementById("reset-btn");
@@ -10,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sidebarItems.forEach(item => {
         item.addEventListener("click", () => {
             const tabId = item.getAttribute("data-tab");
-            
+
             // Update sidebar
             sidebarItems.forEach(i => i.classList.remove("active"));
             item.classList.add("active");
@@ -35,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     editBtn.addEventListener("click", () => {
         ipcRenderer.send("settings:edit-file");
     });
-    
+
     closeBtn.addEventListener("click", () => {
         window.close();
     });
@@ -55,4 +58,20 @@ document.addEventListener("DOMContentLoaded", () => {
     systemFrameSwitch.addEventListener("change", (e) => {
         ipcRenderer.send("settings:set", "useSystemWindowFrame", e.target.checked);
     });
+
+    // About tab
+    document.getElementById("app-version").textContent = await ipcRenderer.invoke("app:get-version");
+
+    const developedByLink = document.getElementById("developed-by-link");
+    developedByLink.href = misc.repository.maintainer.url;
+    developedByLink.textContent = misc.repository.maintainer.name;
+
+    const githubLink = document.getElementById("github-link");
+    githubLink.href = misc.repository.url;
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    misc = await ipcRenderer.invoke("import:misc");
+
+    await onReady();
 });

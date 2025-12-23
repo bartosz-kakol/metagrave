@@ -2,7 +2,7 @@ import {app} from "electron";
 import fs from "fs";
 import EventEmitter from "node:events";
 import semver from "semver";
-import {p} from "../utils.js";
+import {p, simpleLogger} from "../utils.js";
 
 /**
  * @typedef {Object} UpdaterOptions
@@ -20,6 +20,8 @@ import {p} from "../utils.js";
  * @property {string} minimumCompatibleVersion
  * @property {Record<string, {url: string, sha256: string}>} artifacts
  */
+
+const log = simpleLogger("📡 updater");
 
 
 class Updater extends EventEmitter {
@@ -50,7 +52,7 @@ class Updater extends EventEmitter {
 			throw new Error(`Updater config file not found: ${configPath}`);
 		}
 
-		console.log(`Using updater config: ${configPath}`);
+		log(`Using updater config: ${configPath}`);
 
 		return JSON.parse(fs.readFileSync(configPath, "utf8"));
 	}

@@ -4,14 +4,16 @@ import path from "path";
 import * as platform from "../../platform_detect.js";
 import {atLeastOneURLMatches, p, simpleLogger} from "../../utils.js";
 import {setupTray} from "../tray.js";
-import {setChatWindow} from "../state.js";
+import {getStore, setChatWindow} from "../state.js";
 import misc from "../misc.json" with {type: "json"};
 import getBaseMenuTemplate, {clearAllSessionData} from "../menu.js";
 
-const log = simpleLogger("windows/chat")
+const log = simpleLogger("windows/chat");
 
 export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	const titleBarHeight = 32;
+
+	const store = getStore();
 
 	const chatWindow = new BrowserWindow({
 		minWidth: 800,
@@ -19,9 +21,9 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 		minHeight: 600,
 		height: 780,
 		title: "Metagrave",
-		frame: !platform.isWin, // Windows: frameless; macOS: use hidden title bar with native traffic lights
-		titleBarStyle: platform.isMac ? "hidden" : undefined,
-		trafficLightPosition: platform.isMac ? {x: 12, y: 10} : undefined, // custom location for macOS traffic lights
+		frame: store.get("useSystemWindowFrame"), // Windows: frameless; macOS: use hidden title bar with native traffic lights
+		titleBarStyle: (platform.isMac && !store.get("useSystemWindowFrame")) ? "hidden" : undefined,
+		trafficLightPosition: (platform.isMac && !store.get("useSystemWindowFrame")) ? {x: 12, y: 10} : undefined, // custom location for macOS traffic lights
 		autoHideMenuBar: true,
 		backgroundColor: "#1e1e1e",
 		webPreferences: {
@@ -66,7 +68,7 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	/** @type {?ElectronWebContentsView} */
 	let titleBarView = null;
 	let topOffset = 0;
-	if (!platform.isOther) {
+	if (!store.get("useSystemWindowFrame")) {
 		titleBarView = new WebContentsView({
 			webPreferences: {
 				nodeIntegration: true,

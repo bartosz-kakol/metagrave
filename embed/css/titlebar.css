@@ -91,10 +91,19 @@ body[data-platform="other"]     .region.platform-other {
     height: var(--btn-universal-size);
     app-region: no-drag;
     border-radius: calc(var(--btn-universal-size) / 2);
-    background: red;
+    background: #3a3a3a;
     display: flex;
     justify-content: center;
     align-items: center;
+    transition: background 0.1s ease-in-out;
+
+    &:hover {
+        background: #4e4e4e;
+    }
+
+    &:active {
+        background: #626262;
+    }
 }
 
 .btn {
@@ -106,7 +115,7 @@ body[data-platform="other"]     .region.platform-other {
     transition: background 0.1s ease-in-out;
     display: flex;
     align-items: center;
-    font-size: 15px;
+    font-size: 14px;
     gap: 4px;
 
     &:hover {

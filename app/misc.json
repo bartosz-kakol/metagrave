@@ -20,5 +20,12 @@
     "https://www.facebook.com/messages/e2ee"
   ],
   "specificMediaURL": "https://www.facebook.com/messenger_media",
-  "logoutURL": "https://www.facebook.com/logout.php"
+  "logoutURL": "https://www.facebook.com/logout.php",
+  "repository": {
+    "url": "https://github.com/bartosz-kakol/metagrave",
+    "maintainer": {
+      "name": "bartosz-kakol",
+      "url": "https://github.com/bartosz-kakol"
+    }
+  }
 }

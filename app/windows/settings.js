@@ -1,4 +1,4 @@
-import {app, BrowserWindow, ipcMain, dialog} from "electron";
+import {app, BrowserWindow, ipcMain, dialog, shell} from "electron";
 import {getSettingsWindow, setSettingsWindow, getStore, getChatWindow} from "../state.js";
 import {simpleLogger} from "../../utils.js";
 
@@ -25,11 +25,21 @@ export function createSettingsWindow() {
 		title: "Settings",
 		autoHideMenuBar: true,
 		resizable: true,
-		backgroundColor: "#2F3233",
+		backgroundColor: "#242728",
 		webPreferences: {
 			nodeIntegration: true,
 			contextIsolation: false,
 		},
+	});
+
+	settingsWindow.webContents.setWindowOpenHandler(({url}) => {
+		if (url.startsWith("http:") || url.startsWith("https:")) {
+			shell.openExternal(url);
+
+			return {action: "deny"};
+		}
+
+		return {action: "allow"};
 	});
 
 	settingsWindow.loadFile("embed/settings.html");

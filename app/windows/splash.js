@@ -1,4 +1,4 @@
-import {BrowserWindow, app, ipcMain} from "electron";
+import {BrowserWindow} from "electron";
 import * as platform from "../../platform_detect.js";
 import {p} from "../../utils.js";
 
@@ -22,10 +22,6 @@ export function createSplashWindow() {
 			sandbox: true,
 			preload: p`app/preload/splash.js`,
 		},
-	});
-
-	ipcMain.handle("app:get-version", () => {
-		return app.getVersion();
 	});
 
 	splashWindow.setMenuBarVisibility(false);

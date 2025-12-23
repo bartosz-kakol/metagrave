@@ -360,9 +360,17 @@ h1 {
     font-family: "Zen Dots MetagraveEmbedded", system-ui, -apple-system, Segoe UI, sans-serif;
 }
 
+a {
+    color: var(--brand-experiment);
+}
+
 #close-btn {
     position: absolute;
     bottom: 30px;
     right: 30px;
     z-index: 100;
+}
+
+#app-version {
+    font-weight: bold;
 }

@@ -19,11 +19,21 @@
                         </svg>
                         General
                     </div>
+
                     <div class="sidebar-item" data-tab="appearance">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-droplet">
                             <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
                         </svg>
                         Appearance
+                    </div>
+
+                    <div class="sidebar-item" data-tab="about">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-info">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        About
                     </div>
                 </div>
             </div>
@@ -54,17 +64,28 @@
                         </div>
                     </div>
                 </div>
+
                 <div id="appearance-tab" class="tab-pane">
                     <h1>Appearance</h1>
                     <div class="setting-item setting-row">
                         <div class="setting-info">
                             <label class="setting-label">Use system window frame</label>
-                            <div class="setting-description">Whether to use the operating system's default window frame or Metagrave's custom titlebar.</div>
+                            <div class="setting-description">Whether to use the operating system's default window frame or Metagrave's custom titlebar. <strong>Requires a relaunch.</strong></div>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="system-frame-switch">
                             <span class="slider"></span>
                         </label>
+                    </div>
+                </div>
+
+                <div id="about-tab" class="tab-pane">
+                    <h1>About</h1>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <img src="img/logo.png" width="500" />
+                        <label>Version <span id="app-version"></span></label>
+                        <label style="color: var(--text-muted)">Developed by <a id="developed-by-link" target="_blank"></a></label>
+                        <a id="github-link" target="_blank">View the project on GitHub</a>
                     </div>
                 </div>
             </div>
