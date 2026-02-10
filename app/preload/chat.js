@@ -1,4 +1,4 @@
-const {ipcRenderer} = require("electron");
+const { ipcRenderer } = require("electron");
 
 class ElementDetector {
 	/** @type {string} */
@@ -75,6 +75,8 @@ ipcRenderer.on("chat:chat-url-changed", () => {
 	const url = location.href;
 
 	const closeMediaButton = document.querySelector(".metagrave-close-media-button");
+	if (!closeMediaButton) return;
+
 	closeMediaButton.style.display = url.startsWith(misc.specificMediaURL) ? null : "none";
 });
 
@@ -120,6 +122,31 @@ async function detectProfile() {
 	ipcRenderer.send("chat:set-profile", avatarURL, profileName);
 }
 
+/**
+ * Replace Facebook emoji images with native ones.
+ */
+function searchForEmojis() {
+	const emojisInChat = document.querySelectorAll(`img[src*="emoji"][alt]:not([data-mg-native-emoji])`);
+
+	emojisInChat.forEach((emojiImg) => {
+		emojiImg.setAttribute("data-mg-native-emoji", "true");
+
+		const emojiText = emojiImg.alt;
+
+		emojiImg.src = `mg-native-emoji://get?emoji=${emojiText}`;
+	});
+
+	const emojisInMessageEditor = document.querySelectorAll(`span[style*="/images/emoji.php"]:not([data-mg-native-emoji])`);
+
+	emojisInMessageEditor.forEach((emojiSpan) => {
+		emojiSpan.setAttribute("data-mg-native-emoji", "true");
+
+		const emojiText = emojiSpan.textContent;
+
+		emojiSpan.style.backgroundImage = `url("mg-native-emoji://get?emoji=${emojiText}")`;
+	});
+}
+
 async function onReady() {
 	// Add a replacement button for closing media content in specific circumstances
 	const closeMediaButton = document.createElement("button");
@@ -132,6 +159,16 @@ async function onReady() {
 	document.body.appendChild(closeMediaButton);
 
 	await detectProfile();
+
+	const useNativeEmojis = await ipcRenderer.invoke("settings:get", "appearance.useNativeEmojis");
+
+	if (useNativeEmojis) {
+		searchForEmojis();
+		const emojiObserver = new MutationObserver((mutations) => {
+			searchForEmojis();
+		});
+		emojiObserver.observe(document.body, { childList: true, subtree: true });
+	}
 }
 
 document.addEventListener("DOMContentLoaded", async () => {

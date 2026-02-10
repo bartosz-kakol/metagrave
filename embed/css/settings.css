@@ -84,11 +84,12 @@ body {
         overflow-x: auto;
         max-width: 100%;
         scroll-behavior: smooth;
-        
+
         /* Hide scrollbar for clean look but allow scrolling */
         &::-webkit-scrollbar {
             display: none;
         }
+
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
@@ -216,7 +217,7 @@ h2 {
         text-transform: uppercase;
     }
 
-    input[type="text"], 
+    input[type="text"],
     select {
         width: 100%;
         background-color: var(--background-tertiary);
@@ -262,7 +263,7 @@ input[type="range"] {
         background: var(--header-primary);
         border-radius: 50%;
         cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 }
 
@@ -278,7 +279,7 @@ input[type="range"] {
         width: 0;
         height: 0;
 
-        &:checked + .slider {
+        &:checked+.slider {
             background-color: var(--control-brand-foreground);
 
             &:before {
@@ -344,10 +345,24 @@ input[type="range"] {
 
     &.danger {
         background-color: var(--status-danger);
-        
+
         &:hover {
             background-color: #d13d3d;
         }
+    }
+}
+
+.setting-icon {
+    --size: 28px;
+
+    width: var(--size);
+    height: var(--size);
+
+    margin-right: 8px;
+
+    >svg {
+        width: var(--size);
+        height: var(--size);
     }
 }
 
@@ -373,4 +388,164 @@ a {
 
 #app-version {
     font-weight: bold;
+}
+
+/* Updates Tab Styles */
+.updates-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+    text-align: center;
+}
+
+.update-status-icon {
+    width: 64px;
+    height: 64px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+
+.update-status-icon.success {
+    color: var(--control-brand-foreground);
+}
+
+.update-status-text {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-normal);
+    margin-bottom: 30px;
+}
+
+.update-progress-container {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 20px;
+}
+
+.update-progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background-color: var(--background-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.update-progress-bar-fill {
+    height: 100%;
+    background-color: var(--brand-experiment);
+    width: 0%;
+    transition: width 0.2s ease;
+}
+
+.update-progress-text {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.updates-widget {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: row;
+    /* Row layout */
+    align-items: center;
+    gap: 20px;
+    border: 1px solid var(--background-modifier-accent);
+}
+
+.updates-content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+}
+
+.updates-status-text {
+    color: var(--text-normal);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.updates-progress-bar {
+    width: 100%;
+    height: 6px;
+    background-color: var(--background-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.updates-progress-fill {
+    height: 100%;
+    background-color: var(--brand-experiment);
+    width: 0%;
+    transition: width 0.2s linear;
+}
+
+.updates-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.button.secondary {
+    background-color: var(--background-tertiary);
+    color: var(--text-normal);
+}
+
+.button.secondary:hover {
+    background-color: var(--background-accent);
+}
+
+.update-icon-container {
+    /* No margin needed, flex gap handles spacing */
+    flex-shrink: 0;
+}
+
+.update-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--text-muted);
+    transition: color 0.3s;
+}
+
+/* State Colors */
+/* Up to date - Green */
+.updates-widget.state-uptodate .update-icon {
+    color: var(--control-brand-foreground);
+}
+
+/* Checking - Blue */
+.updates-widget.state-checking .update-icon {
+    color: var(--brand-experiment);
+    animation: spin 2s linear infinite;
+}
+
+/* Result / Downloading - Blue */
+.updates-widget.state-downloading .update-icon {
+    color: var(--brand-experiment);
+}
+
+/* Ready - Green */
+.updates-widget.state-ready .update-icon {
+    color: var(--control-brand-foreground);
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }

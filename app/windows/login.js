@@ -1,9 +1,9 @@
-import {BrowserWindow, Menu, WebContentsView, app, dialog} from "electron";
-import {getChatWindow} from "../state.js";
-import {createChatWindow} from "./chat.js";
-import getBaseMenuTemplate, {clearAllSessionData} from "../menu.js";
+import { BrowserWindow, Menu, WebContentsView, app, dialog } from "electron";
+import state from "../state.js";
+import { createChatWindow } from "./chat.js";
+import getBaseMenuTemplate, { clearAllSessionData } from "../menu.js";
 import misc from "../misc.json" with {type: "json"};
-import {atLeastOneURLMatches, simpleLogger} from "../../utils.js";
+import { atLeastOneURLMatches, simpleLogger } from "../../utils.js";
 
 const log = simpleLogger("windows/login");
 
@@ -46,8 +46,8 @@ export function createLoginWindow(onLoaded) {
 
 	const applyLayout = () => {
 		const [w, h] = loginWindow.getContentSize();
-		addressBarView.setBounds({x: 0, y: 0, width: w, height: addressBarHeight});
-		contentView.setBounds({x: 0, y: addressBarHeight, width: w, height: Math.max(0, h - addressBarHeight)});
+		addressBarView.setBounds({ x: 0, y: 0, width: w, height: addressBarHeight });
+		contentView.setBounds({ x: 0, y: addressBarHeight, width: w, height: Math.max(0, h - addressBarHeight) });
 	};
 	applyLayout();
 	loginWindow.on("resize", applyLayout);
@@ -69,24 +69,24 @@ export function createLoginWindow(onLoaded) {
 
 	loginWindow.webContents.on("context-menu", (event, params) => {
 		const template = [
-			{role: "undo", enabled: params.editFlags.canUndo},
-			{role: "redo", enabled: params.editFlags.canRedo},
-			{type: "separator"},
-			{role: "cut", enabled: params.editFlags.canCut},
-			{role: "copy", enabled: params.editFlags.canCopy},
-			{role: "paste", enabled: params.editFlags.canPaste},
-			{type: "separator"},
-			{role: "selectAll"},
+			{ role: "undo", enabled: params.editFlags.canUndo },
+			{ role: "redo", enabled: params.editFlags.canRedo },
+			{ type: "separator" },
+			{ role: "cut", enabled: params.editFlags.canCut },
+			{ role: "copy", enabled: params.editFlags.canCopy },
+			{ role: "paste", enabled: params.editFlags.canPaste },
+			{ type: "separator" },
+			{ role: "selectAll" },
 		];
 		const ctx = Menu.buildFromTemplate(template);
-		ctx.popup({window: getChatWindow()});
+		ctx.popup({ window: state.chatWindow });
 	});
 
 	const initialURL = misc.initialURL;
 
 	const updateAddressBar = (url, loading) => {
 		try {
-			addressBarView.webContents.send("address:update", {url, loading});
+			addressBarView.webContents.send("address:update", { url, loading });
 		} catch (_) {
 		}
 	};
@@ -163,7 +163,7 @@ export function createLoginWindow(onLoaded) {
 					cancelId: 0,
 					defaultId: 0
 				})
-					.then(({response}) => {
+					.then(({ response }) => {
 						switch (response) {
 							case 1:
 								return;

@@ -1,19 +1,23 @@
-import {BrowserWindow, Menu, WebContentsView, ipcMain, shell, app, dialog} from "electron";
+import { BrowserWindow, Menu, WebContentsView, ipcMain, shell, app, dialog, protocol } from "electron";
 import fs from "fs";
 import path from "path";
 import * as platform from "../../platform_detect.js";
-import {atLeastOneURLMatches, p, simpleLogger} from "../../utils.js";
-import {setupTray} from "../tray.js";
-import {getStore, setChatWindow} from "../state.js";
+import { atLeastOneURLMatches, p, simpleLogger } from "../../utils.js";
+import { setupTray } from "../tray.js";
+import state from "../state.js";
 import misc from "../misc.json" with {type: "json"};
-import getBaseMenuTemplate, {clearAllSessionData} from "../menu.js";
+import getBaseMenuTemplate, { clearAllSessionData } from "../menu.js";
+import { NATIVE_EMOJI_CACHE_DIR } from "../../constants.js";
+import NativeEmojis from "../modules/native_emojis.js";
 
 const log = simpleLogger("windows/chat");
 
+if (!fs.existsSync(NATIVE_EMOJI_CACHE_DIR)) {
+	fs.mkdirSync(NATIVE_EMOJI_CACHE_DIR, { recursive: true });
+}
+
 export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	const titleBarHeight = 32;
-
-	const store = getStore();
 
 	const chatWindow = new BrowserWindow({
 		minWidth: 800,
@@ -21,10 +25,10 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 		minHeight: 600,
 		height: 780,
 		title: "Metagrave",
-		frame: store.get("useSystemWindowFrame"), // Windows: frameless; macOS: use hidden title bar with native traffic lights
-		titleBarStyle: (platform.isMac && !store.get("useSystemWindowFrame")) ? "hidden" : undefined,
-		trafficLightPosition: (platform.isMac && !store.get("useSystemWindowFrame")) ? {x: 12, y: 10} : undefined, // custom location for macOS traffic lights
-		autoHideMenuBar: true,
+		frame: state.settingsStore.get("appearance.useSystemWindowFrame"), // Windows: frameless; macOS: use hidden title bar with native traffic lights
+		titleBarStyle: (platform.isMac && !state.settingsStore.get("appearance.useSystemWindowFrame")) ? "hidden" : undefined,
+		trafficLightPosition: (platform.isMac && !state.settingsStore.get("appearance.useSystemWindowFrame")) ? { x: 12, y: 10 } : undefined, // custom location for macOS traffic lights
+		autoHideMenuBar: false,
 		backgroundColor: "#1e1e1e",
 		webPreferences: {
 			nodeIntegration: false,
@@ -40,7 +44,7 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	});
 	chatWindow.contentView.addChildView(contentView);
 
-	setChatWindow(chatWindow);
+	state.chatWindow = chatWindow;
 
 	// Ensure macOS traffic lights are visible when using the hidden title bar
 	if (platform.isMac) {
@@ -50,7 +54,7 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	if (process.platform === "darwin") {
 		app.dock.setMenu(
 			Menu.buildFromTemplate([
-				{role: "quit"},
+				{ role: "quit" },
 			])
 		);
 	}
@@ -68,7 +72,7 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	/** @type {?ElectronWebContentsView} */
 	let titleBarView = null;
 	let topOffset = 0;
-	if (!store.get("useSystemWindowFrame")) {
+	if (!state.settingsStore.get("appearance.useSystemWindowFrame")) {
 		titleBarView = new WebContentsView({
 			webPreferences: {
 				nodeIntegration: true,
@@ -80,11 +84,12 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	}
 
 	const applyLayout = () => {
-		const [w, h] = chatWindow.getContentSize();
+		// const [w, h] = chatWindow.getContentSize();
+		const { width: w, height: h } = chatWindow.getContentBounds();
 		if (titleBarView) {
-			titleBarView.setBounds({x: 0, y: 0, width: w, height: titleBarHeight});
+			titleBarView.setBounds({ x: 0, y: 0, width: w, height: titleBarHeight });
 		}
-		contentView.setBounds({x: 0, y: topOffset, width: w, height: Math.max(0, h - topOffset)});
+		contentView.setBounds({ x: 0, y: topOffset, width: w, height: Math.max(0, h - topOffset) });
 	};
 
 	if (titleBarView) {
@@ -129,23 +134,23 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 							.catch(e => console.error(e));
 					},
 				},
-				{type: "separator"}
+				{ type: "separator" }
 			);
 		}
 
 		template.push(
-			{role: "undo", enabled: params.editFlags.canUndo},
-			{role: "redo", enabled: params.editFlags.canRedo},
-			{type: "separator"},
-			{role: "cut", enabled: params.editFlags.canCut},
-			{role: "copy", enabled: params.editFlags.canCopy},
-			{role: "paste", enabled: params.editFlags.canPaste},
-			{type: "separator"},
-			{role: "selectAll"}
+			{ role: "undo", enabled: params.editFlags.canUndo },
+			{ role: "redo", enabled: params.editFlags.canRedo },
+			{ type: "separator" },
+			{ role: "cut", enabled: params.editFlags.canCut },
+			{ role: "copy", enabled: params.editFlags.canCopy },
+			{ role: "paste", enabled: params.editFlags.canPaste },
+			{ type: "separator" },
+			{ role: "selectAll" }
 		);
 
 		const ctx = Menu.buildFromTemplate(template);
-		ctx.popup({window: chatWindow});
+		ctx.popup({ window: chatWindow });
 	});
 
 	const handleNavigate = (event, url) => {
@@ -189,14 +194,14 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 		}
 	});
 
-	contentView.webContents.setWindowOpenHandler(({url}) => {
+	contentView.webContents.setWindowOpenHandler(({ url }) => {
 		if (url.startsWith("http:") || url.startsWith("https:")) {
 			shell.openExternal(url);
 
-			return {action: "deny"};
+			return { action: "deny" };
 		}
 
-		return {action: "allow"};
+		return { action: "allow" };
 	});
 
 	try {
@@ -274,7 +279,21 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 	});
 
 	chatWindow.on("closed", () => {
-		setChatWindow(null);
+		state.chatWindow = null;
+	});
+
+	const nativeEmojis = new NativeEmojis({
+		cacheDirPath: NATIVE_EMOJI_CACHE_DIR,
+		renderYOffset: 8
+	});
+
+	protocol.handle("mg-native-emoji", async req => {
+		const url = new URL(req.url);
+		const emoji = url.searchParams.get("emoji");
+
+		const imageData = await nativeEmojis.get(emoji);
+
+		return new Response(imageData, { headers: { "Content-Type": "image/webp" } });
 	});
 
 	contentView.webContents.loadURL(continueFromURL)

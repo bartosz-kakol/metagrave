@@ -1,4 +1,5 @@
 import Store from "electron-store";
+import * as platform from "../platform_detect.js";
 
 // Shared mutable state for main process entities
 
@@ -9,53 +10,73 @@ let settingsWindow = null;
 /** @type {?ElectronTray} */
 let tray = null;
 
-const store = new Store();
+const settingsStore = new Store({
+	name: "settings",
+	defaults: {
+		appearance: {
+			useSystemWindowFrame: platform.isOther,
+			useNativeEmojis: false,
+		}
+	}
+});
+
+const props = {
+	chatWindow: [
+		() => chatWindow,
+		v => chatWindow = v
+	],
+	settingsWindow: [
+		() => settingsWindow,
+		v => settingsWindow = v
+	],
+	tray: [
+		() => tray,
+		v => tray = v
+	],
+	settingsStore: [
+		() => settingsStore,
+		null
+	],
+};
 
 /**
- * @param win {?ElectronBrowserWindow}
+ * @typedef {Object} State
+ * @property {import("electron").BrowserWindow} chatWindow
+ * @property {import("electron").BrowserWindow} settingsWindow
+ * @property {import("electron").Tray} tray
+ * @property {Store} settingsStore
  */
-export function setChatWindow(win) {
-	chatWindow = win || null;
-}
 
-/**
- * @returns {?ElectronBrowserWindow}
- */
-export function getChatWindow() {
-	return chatWindow || null;
-}
+/** @type {State} */
+const mod = new Proxy({}, {
+	get: (target, prop) => {
+		const propObj = props[prop];
+		if (!propObj) {
+			throw new Error(`"${prop}" is not a valid state.`);
+		}
 
-/**
- * @param win {?ElectronBrowserWindow}
- */
-export function setSettingsWindow(win) {
-	settingsWindow = win || null;
-}
+		const getter = propObj[0];
+		if (typeof getter !== "function") {
+			throw new Error(`"${prop}" does not have a getter.`);
+		}
 
-/**
- * @returns {?ElectronBrowserWindow}
- */
-export function getSettingsWindow() {
-	return settingsWindow || null;
-}
+		return getter();
+	},
+	set: (target, prop, value) => {
+		const propObj = props[prop];
+		if (!propObj) {
+			throw new Error(`"${prop}" is not a valid state.`);
+		}
 
-/**
- * @param t {?ElectronTray}
- */
-export function setTray(t) {
-	tray = t || null;
-}
+		const setter = propObj[1];
+		if (typeof setter !== "function") {
+			throw new Error(`"${prop}" does not have a setter.`);
+		}
 
-/**
- * @returns {?ElectronTray}
- */
-export function getTray() {
-	return tray || null;
-}
+		setter(value);
 
-/**
- * @returns {Store}
- */
-export function getStore() {
-	return store;
-}
+		return true;
+	}
+});
+
+export default mod;

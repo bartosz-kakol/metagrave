@@ -23,6 +23,7 @@
   "logoutURL": "https://www.facebook.com/logout.php",
   "repository": {
     "url": "https://github.com/bartosz-kakol/metagrave",
+    "linkText": "View the project on GitHub",
     "maintainer": {
       "name": "bartosz-kakol",
       "url": "https://github.com/bartosz-kakol"

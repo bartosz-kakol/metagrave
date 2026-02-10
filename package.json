@@ -1,6 +1,6 @@
 {
   "name": "metagrave",
-  "version": "1.1.0-nightly",
+  "version": "1.2.0-nightly",
   "author": {
     "name": "bartekk",
     "email": "bartekk.github@pm.me"
@@ -12,13 +12,15 @@
     "start": "electron .",
     "dist-auto": "electron-builder",
     "dist": "electron-builder -mwl --x64 --arm64",
+    "dist-unsigned": "CSC_NAME=null electron-builder -mwl --x64 --arm64",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "private": true,
   "type": "module",
   "dependencies": {
     "electron-store": "^11.0.2",
-    "semver": "^7.7.3"
+    "semver": "^7.7.3",
+    "skia-canvas": "^3.0.8"
   },
   "devDependencies": {
     "electron": "^39.2.4",
