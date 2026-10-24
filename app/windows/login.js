@@ -165,12 +165,12 @@ export function createLoginWindow(onLoaded) {
 				})
 					.then(({ response }) => {
 						switch (response) {
-							case 1:
+							case 0:
 								return;
-							case 2:
+							case 1:
 								contentView.webContents.loadURL(initialURL);
 								break
-							case 3:
+							case 2:
 								clearAllSessionData()
 									.then(() => {
 										app.relaunch();

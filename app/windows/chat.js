@@ -166,6 +166,12 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 		}
 
 		event.preventDefault();
+
+		if (url.startsWith("about:")) {
+			log(`Messenger tried opening an "about:" URL ("${url}"), so it was ignored.`);
+			return false;
+		}
+
 		log(`opening externally: ${url}`);
 		shell.openExternal(url);
 
@@ -289,13 +295,14 @@ export function createChatWindow(continueFromURL, endedUpOnFacebookBusiness) {
 
 	protocol.handle("mg-native-emoji", async req => {
 		const url = new URL(req.url);
-		const emoji = url.searchParams.get("emoji");
+		const emoji = url.searchParams.get("e");
 
 		const imageData = await nativeEmojis.get(emoji);
 
 		return new Response(imageData, { headers: { "Content-Type": "image/webp" } });
 	});
 
+	contentView.webContents.setUserAgent(misc.userAgent);
 	contentView.webContents.loadURL(continueFromURL)
 		.then(() => {
 			if (endedUpOnFacebookBusiness) {

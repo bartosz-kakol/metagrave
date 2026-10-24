@@ -1,13 +1,31 @@
-import { Canvas, FontLibrary } from "skia-canvas";
-
-FontLibrary.use("NativeEmojiFont", "/System/Library/Fonts/Apple Color Emoji.ttc");
+import { Canvas } from "skia-canvas";
 
 const TARGET_SIZE = 192;
 const CENTER = TARGET_SIZE / 2;
 
+/**
+ * @typedef {Object} PlatformParameters
+ * @property {number} renderYOffset
+ */
+
+/** @type {Record<typeof process.platform | "default", PlatformParameters>} */
+const platformParameters = {
+    "darwin": {
+        renderYOffset: 8,
+    },
+    "win32": {
+        renderYOffset: 8,
+    },
+    default: {
+        renderYOffset: 8,
+    },
+};
+
+const currentPlatformParameters = platformParameters[process.platform] ?? platformParameters.default;
+
 process.parentPort.on("message", async e => {
     // This function is responsible for rendering emojis that look native to the operating system as images.
-    const { emoji, renderYOffset } = e.data;
+    const { emoji } = e.data;
 
     try {
         const canvas = new Canvas(TARGET_SIZE, TARGET_SIZE);
@@ -18,7 +36,7 @@ process.parentPort.on("message", async e => {
         ctx.textBaseline = "middle";
 
         const centerX = CENTER;
-        const centerY = CENTER + renderYOffset;
+        const centerY = CENTER + currentPlatformParameters.renderYOffset;
 
         ctx.fillText(emoji, centerX, centerY);
 

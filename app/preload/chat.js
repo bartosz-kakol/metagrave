@@ -126,24 +126,21 @@ async function detectProfile() {
  * Replace Facebook emoji images with native ones.
  */
 function searchForEmojis() {
-	const emojisInChat = document.querySelectorAll(`img[src*="emoji"][alt]:not([data-mg-native-emoji])`);
+	const emojisInChat = document.querySelectorAll(`img[src*="/images/emoji.php"][alt]`);
 
 	emojisInChat.forEach((emojiImg) => {
-		emojiImg.setAttribute("data-mg-native-emoji", "true");
-
+		/** @type {string} */
 		const emojiText = emojiImg.alt;
 
-		emojiImg.src = `mg-native-emoji://get?emoji=${emojiText}`;
+		emojiImg.src = `mg-native-emoji://g?e=${emojiText}`;
 	});
 
-	const emojisInMessageEditor = document.querySelectorAll(`span[style*="/images/emoji.php"]:not([data-mg-native-emoji])`);
+	const emojisInMessageEditor = document.querySelectorAll(`span[style*="/images/emoji.php"]`);
 
 	emojisInMessageEditor.forEach((emojiSpan) => {
-		emojiSpan.setAttribute("data-mg-native-emoji", "true");
-
 		const emojiText = emojiSpan.textContent;
 
-		emojiSpan.style.backgroundImage = `url("mg-native-emoji://get?emoji=${emojiText}")`;
+		emojiSpan.style.backgroundImage = `url("mg-native-emoji://g?e=${emojiText}")`;
 	});
 }
 

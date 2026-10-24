@@ -12,10 +12,7 @@ class NativeEmojis {
     /** @type {Map<string, ArrayBuffer>} */
     #inMemoryCache = new Map();
 
-    /** @type {number} */
-    #renderYOffset;
-
-    /** @type {Map<string, {resolve: (data: ArrayBuffer) => any, reject (err: Error) => any}[]} */
+    /** @type {Map<string, {resolve: (data: ArrayBuffer) => any, reject (err: Error) => any}[]>} */
     #callbacks = new Map();
 
     /** @type {import("electron").UtilityProcess[]} */
@@ -27,11 +24,9 @@ class NativeEmojis {
     /**
      * @param {Object} param0
      * @param {string} param0.cacheDirPath
-     * @param {number} param0.renderYOffset
      */
-    constructor({ cacheDirPath, renderYOffset }) {
+    constructor({ cacheDirPath }) {
         this.#cacheDirPath = cacheDirPath;
-        this.#renderYOffset = renderYOffset;
     }
 
     /**
@@ -87,10 +82,7 @@ class NativeEmojis {
 
         const childProcess = this.#renderThreads[this.#renderThreadChooser++];
 
-        childProcess.postMessage({
-            emoji,
-            renderYOffset: this.#renderYOffset,
-        });
+        childProcess.postMessage({ emoji });
     }
 
     /**
