@@ -1,11 +1,11 @@
-import {app, BrowserWindow, ipcMain, dialog, shell} from "electron";
-import {getSettingsWindow, setSettingsWindow, getStore, getChatWindow} from "../state.js";
-import {simpleLogger} from "../../utils.js";
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
+import state from "../state.js";
+import { simpleLogger } from "../../utils.js";
 
 const log = simpleLogger("windows/settings");
 
 export function createSettingsWindow() {
-	let settingsWindow = getSettingsWindow();
+	let settingsWindow = state.settingsWindow;
 
 	if (settingsWindow) {
 		settingsWindow.show();
@@ -20,7 +20,7 @@ export function createSettingsWindow() {
 		height: 700,
 		center: true,
 		modal: true,
-		parent: getChatWindow(),
+		parent: state.chatWindow,
 		maximizable: false,
 		title: "Settings",
 		autoHideMenuBar: true,
@@ -32,22 +32,22 @@ export function createSettingsWindow() {
 		},
 	});
 
-	settingsWindow.webContents.setWindowOpenHandler(({url}) => {
+	settingsWindow.webContents.setWindowOpenHandler(({ url }) => {
 		if (url.startsWith("http:") || url.startsWith("https:")) {
 			shell.openExternal(url);
 
-			return {action: "deny"};
+			return { action: "deny" };
 		}
 
-		return {action: "allow"};
+		return { action: "allow" };
 	});
 
 	settingsWindow.loadFile("embed/settings.html");
 
-	setSettingsWindow(settingsWindow);
+	state.settingsWindow = settingsWindow;
 
 	settingsWindow.on("closed", () => {
-		setSettingsWindow(null);
+		state.settingsWindow = null;
 	});
 
 	return settingsWindow;
@@ -56,32 +56,25 @@ export function createSettingsWindow() {
 ipcMain.on("settings:set", (event, key, value) => {
 	log(`Setting changed: ${key} = ${value}`);
 
-	const store = getStore();
-
-	store.set(key, value);
+	state.settingsStore.set(key, value);
 });
 
 ipcMain.handle("settings:get", (event, key) => {
-	const store = getStore();
-
-	return store.get(key);
+	return state.settingsStore.get(key);
 });
 
 ipcMain.on("settings:reset", () => {
-	const store = getStore();
-
-	store.clear();
+	state.settingsStore.clear();
 	app.relaunch();
 	app.exit();
 });
 
 ipcMain.on("settings:edit-file", () => {
-	const store = getStore();
-	const settingsWindow = getSettingsWindow();
+	const settingsWindow = state.settingsWindow;
 
 	if (!settingsWindow) return;
 
-	store.openInEditor()
+	state.settingsStore.openInEditor()
 		.catch(e => {
 			dialog.showMessageBox(settingsWindow, {
 				type: "error",
